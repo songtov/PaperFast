@@ -1,6 +1,7 @@
-def main():
-    print("Hello from paperfast!")
+import streamlit as st
 
+st.title("My First Streamlit App")
+st.write("Hello, world! This is a simple data app.")
 
-if __name__ == "__main__":
-    main()
+if st.button('Say hello'):
+    st.write('Hello there!')
