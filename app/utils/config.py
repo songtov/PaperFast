@@ -21,7 +21,9 @@ class Settings(BaseSettings):
     LANGFUSE_PUBLIC_KEY:str
     LANGFUSE_BASE_URL:str
 
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, extra="ignore")
+
+
 
 
     def get_llm(self):

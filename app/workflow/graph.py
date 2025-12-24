@@ -12,3 +12,15 @@ def create_workflow():
     workflow.add_edge(AgentType.MASTER, END)
 
     return workflow.compile()
+
+
+if __name__ == "__main__":
+    graph = create_workflow()
+
+    graph_image = graph.get_graph().draw_mermaid_png()
+
+    output_path = "workflow.png"
+    with open(output_path, "wb") as f:
+        f.write(graph_image)
+
+    print(f"Workflow graph saved to {output_path}")
