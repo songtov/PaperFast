@@ -2,21 +2,9 @@ import streamlit as st
 from utils.state_manager import init_session_state, reset_session_state
 from components.sidebar import render_sidebar
 
+def invoke_workflow():
+    return "이것은 모의 응답입니다. 실제 LLM이 연결되면 여기에 답변이 표시됩니다."
 
-def start_chat():
-    st.session_state.app_mode = "result"
-    st.rerun()
-
-def display_result():
-    st.info("info")
-    st.write(f"{st.session_state.question}")
-
-    st.header("resultresult")
-
-    if st.button("다시하기"):
-        reset_session_state()
-        st.session_state.app_mode = "chat"
-        st.rerun()
 
 def render_ui():
     # 페이지 설정
@@ -34,13 +22,27 @@ def render_ui():
 
     render_sidebar()
 
-    current_mode = st.session_state.get("app_mode")
+    # Display chat messages from history on app rerun
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
 
-    if current_mode == "chat":
-        start_chat()
-    elif current_mode == "result":
-        display_result()
+    # Accept user input
+    if prompt := st.chat_input("어떤 논문이 궁금하신가요?"):
+        # Add user message to chat history
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        # Display user message in chat message container
+        with st.chat_message("user"):
+            st.markdown(prompt)
 
+        # Display assistant response in chat message container
+        with st.chat_message("assistant"):
+            message_placeholder = st.empty()
+            full_response = invoke_workflow()
+            message_placeholder.markdown(full_response)
+
+        # Add assistant response to chat history
+        st.session_state.messages.append({"role": "assistant", "content": full_response})
 
 
 if __name__ == "__main__":
