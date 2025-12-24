@@ -1,7 +1,7 @@
 
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings, ChatOpenAI
+from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings, ChatOpenAI, OpenAIEmbeddings
 
 
 load_dotenv()
@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     AOAI_DEPLOY_EMBED_3_SMALL:str
     AOAI_DEPLOY_EMBED_ADA:str
 
+    OPENAI_API_KEY:str
+    OPENAI_MODEL:str = "gpt-5-nano"
+    OPENAI_EMBEDDING_MODEL:str = "text-embedding-3-small"
+
     LANGFUSE_SECRET_KEY:str
     LANGFUSE_PUBLIC_KEY:str
     LANGFUSE_BASE_URL:str
@@ -30,9 +34,7 @@ class Settings(BaseSettings):
         # update HOME
         if self.MODE == "HOME":
             return ChatOpenAI(
-                base_url=self.AOAI_ENDPOINT,
-                api_key=self.AOAI_API_KEY,
-                model_name=self.AOAI_DEPLOY_GPT4O_MINI,
+                model=self.OPENAI_MODEL,
             )
         elif self.MODE == "WORK":
             return AzureChatOpenAI(
@@ -50,9 +52,7 @@ class Settings(BaseSettings):
         # update HOME
         if self.MODE == "HOME":
             return OpenAIEmbeddings(
-                base_url=self.AOAI_ENDPOINT,
-                api_key=self.AOAI_API_KEY,
-                model_name=self.AOAI_DEPLOY_EMBED_3_LARGE,
+                model=self.OPENAI_EMBEDDING_MODEL,
             )
         elif self.MODE == "WORK":
             return AzureOpenAIEmbeddings(
