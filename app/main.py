@@ -1,4 +1,13 @@
 import streamlit as st
+from utils.state_manager import init_session_state
+from components.sidebar import render_sidebar
+
+
+def start_chat():
+
+    st.write("chatchatchat")
+    st.session_state.app_mode = "result"
+    st.rerun()
 
 
 def render_ui():
@@ -15,16 +24,16 @@ def render_ui():
         """
     )
 
-    # render_sidebar()
+    render_sidebar()
 
-    # current_mode = st.session_state.get("app_mode")
+    current_mode = st.session_state.get("app_mode")
 
-    # if current_mode == "debate":
-    #     start_debate()
-    # elif current_mode == "results":
-    #     display_debate_results()
+    if current_mode == "chat":
+        start_chat()
 
 
 
 if __name__ == "__main__":
+    init_session_state()
+
     render_ui()
