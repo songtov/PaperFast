@@ -1,14 +1,22 @@
 import streamlit as st
-from utils.state_manager import init_session_state
+from utils.state_manager import init_session_state, reset_session_state
 from components.sidebar import render_sidebar
 
 
 def start_chat():
-
-    st.write("chatchatchat")
     st.session_state.app_mode = "result"
     st.rerun()
 
+def display_result():
+    st.info("info")
+    st.write(f"{st.session_state.question}")
+
+    st.header("resultresult")
+
+    if st.button("다시하기"):
+        reset_session_state()
+        st.session_state.app_mode = "chat"
+        st.rerun()
 
 def render_ui():
     # 페이지 설정
@@ -30,6 +38,8 @@ def render_ui():
 
     if current_mode == "chat":
         start_chat()
+    elif current_mode == "result":
+        display_result()
 
 
 
