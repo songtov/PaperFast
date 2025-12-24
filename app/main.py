@@ -1,9 +1,25 @@
 import streamlit as st
 from utils.state_manager import init_session_state, reset_session_state
 from components.sidebar import render_sidebar
+from langfuse.langchain import CallbackHandler
+from workflow.graph import create_workflow
 
 def invoke_workflow():
-    return "이것은 모의 응답입니다. 실제 LLM이 연결되면 여기에 답변이 표시됩니다."
+
+    workflow = create_workflow(st.session_state.messages)
+
+    initial_state: CustomState = {
+        "messages": st.session_state.messages,
+        "prev_node": ""
+    }
+
+    with st.spinner("로딩 중..."):
+        langfuse_handler = CallbackHandler()
+        result = workflow.invoke(
+            initial_state, config={"callbacks": [langfuse_handler]}
+        )
+
+    return result
 
 
 def render_ui():
