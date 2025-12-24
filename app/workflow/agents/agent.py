@@ -115,7 +115,7 @@ class Agent(ABC):
         # 내부 그래프 실행
         langfuse_handler = CallbackHandler()
         result = self.graph.invoke(
-            agent_state, config={"callbacks": [langfuse_handler]}
+            agent_state, config={"callbacks": [langfuse_handler], "session_id": self.session_id}
         )
 
         # 최종 메세지 상태 반환

@@ -3,10 +3,12 @@ from utils.state_manager import init_session_state, reset_session_state
 from components.sidebar import render_sidebar
 from langfuse.langchain import CallbackHandler
 from workflow.graph import create_workflow
+import uuid
 
 def invoke_workflow():
+    session_id = str(uuid.uuid4())
 
-    workflow = create_workflow()
+    workflow = create_workflow(session_id=session_id)
 
     initial_state: CustomState = {
         "messages": st.session_state.messages,
@@ -16,7 +18,7 @@ def invoke_workflow():
     with st.spinner("로딩 중..."):
         langfuse_handler = CallbackHandler()
         result = workflow.invoke(
-            initial_state, config={"callbacks": [langfuse_handler]}
+            initial_state, config={"callbacks": [langfuse_handler], "metadata": {"session_id": session_id}}
         )
 
     st.info(result)
