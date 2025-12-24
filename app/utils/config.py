@@ -1,7 +1,7 @@
 
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings, ChatOpenAI as OpenAIChat
+from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings, ChatOpenAI
 
 
 load_dotenv()
@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     def get_llm(self):
         # update HOME
         if self.MODE == "HOME":
-            return OpenAIChat(
+            return ChatOpenAI(
                 base_url=self.AOAI_ENDPOINT,
                 api_key=self.AOAI_API_KEY,
                 model_name=self.AOAI_DEPLOY_GPT4O_MINI,
