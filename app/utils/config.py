@@ -1,6 +1,7 @@
 
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings, ChatOpenAI as OpenAIChat
 
 
 load_dotenv()
@@ -36,6 +37,7 @@ class Settings(BaseSettings):
                 openai_api_key=self.AOAI_API_KEY,
                 azure_endpoint=self.AOAI_ENDPOINT,
                 azure_deployment=self.AOAI_DEPLOY_GPT4O,
+                api_version="2024-02-15-preview",
                 temperature=0.7,
                 streaming=True,
             )

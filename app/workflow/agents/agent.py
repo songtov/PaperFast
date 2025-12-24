@@ -51,7 +51,7 @@ class Agent(ABC):
     # 프롬프트 메시지 준비
     def _prepare_messages(self, state: AgentState) -> AgentState:
 
-        debate_state = state["debate_state"]
+        debate_state = state["message_history"]
         context = state["context"]
 
         # 시스템 프롬프트로 시작
@@ -113,7 +113,7 @@ class Agent(ABC):
         )
 
         # 내부 그래프 실행
-        langfuse_handler = CallbackHandler(session_id=self.session_id)
+        langfuse_handler = CallbackHandler()
         result = self.graph.invoke(
             agent_state, config={"callbacks": [langfuse_handler]}
         )

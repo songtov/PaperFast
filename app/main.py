@@ -6,7 +6,7 @@ from workflow.graph import create_workflow
 
 def invoke_workflow():
 
-    workflow = create_workflow(st.session_state.messages)
+    workflow = create_workflow()
 
     initial_state: CustomState = {
         "messages": st.session_state.messages,
@@ -19,7 +19,9 @@ def invoke_workflow():
             initial_state, config={"callbacks": [langfuse_handler]}
         )
 
-    return result
+    st.info(result)
+
+    return result["messages"][-1]["content"]
 
 
 def render_ui():
