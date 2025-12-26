@@ -1,6 +1,8 @@
-from typing import Dict, Any
+from typing import Any, Dict
+
 from workflow.agents.agent import Agent
 from workflow.state import AgentType
+
 
 class OutputAgent(Agent):
     def __init__(self, session_id: str):

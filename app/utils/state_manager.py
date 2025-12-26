@@ -7,7 +7,7 @@ def init_session_state():
 
     if "app_mode" not in st.session_state:
         reset_session_state()
-    
+
     if "uploaded_pdfs" not in st.session_state:
         st.session_state.uploaded_pdfs = []
 

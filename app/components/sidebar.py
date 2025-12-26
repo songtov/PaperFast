@@ -1,6 +1,6 @@
-import streamlit as st
-from typing import Dict, Any
+from typing import Any, Dict
 
+import streamlit as st
 
 
 def render_history_ui():

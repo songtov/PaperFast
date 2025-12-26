@@ -1,9 +1,9 @@
-from typing import Dict, Any
-from workflow.agents.agent import Agent, AgentState
-from workflow.state import AgentType
+from typing import Any, Dict, Literal
+
 from pydantic import BaseModel, Field
 from utils.config import get_llm
-from typing import Literal
+from workflow.agents.agent import Agent, AgentState
+from workflow.state import AgentType
 
 
 class RouteDecision(BaseModel):

@@ -1,12 +1,11 @@
 from dotenv import load_dotenv
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from langchain_openai import (
     AzureChatOpenAI,
     AzureOpenAIEmbeddings,
     ChatOpenAI,
     OpenAIEmbeddings,
 )
-
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 load_dotenv()
 

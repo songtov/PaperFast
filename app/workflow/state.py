@@ -1,4 +1,4 @@
-from typing import TypedDict, List, Dict, Annotated
+from typing import Annotated, Dict, List, TypedDict
 
 
 class AgentType:
