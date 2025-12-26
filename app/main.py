@@ -3,23 +3,25 @@ from utils.state_manager import init_session_state, reset_session_state
 from components.sidebar import render_sidebar
 from langfuse.langchain import CallbackHandler
 from workflow.graph import create_workflow
-from workflow.state import CustomState
+from workflow.state import RootState
 import uuid
+
 
 def invoke_workflow():
     session_id = str(uuid.uuid4())
 
     workflow = create_workflow(session_id=session_id)
 
-    initial_state: CustomState = {
-        "messages": st.session_state.messages,
-        "prev_node": ""
-    }
+    initial_state: RootState = {"messages": st.session_state.messages, "prev_node": ""}
 
     with st.spinner("로딩 중..."):
         langfuse_handler = CallbackHandler()
         result = workflow.invoke(
-            initial_state, config={"callbacks": [langfuse_handler], "metadata": {"session_id": session_id}}
+            initial_state,
+            config={
+                "callbacks": [langfuse_handler],
+                "metadata": {"session_id": session_id},
+            },
         )
 
     st.info(result)
@@ -63,7 +65,9 @@ def render_ui():
             message_placeholder.markdown(full_response)
 
         # Add assistant response to chat history
-        st.session_state.messages.append({"role": "assistant", "content": full_response})
+        st.session_state.messages.append(
+            {"role": "assistant", "content": full_response}
+        )
 
 
 if __name__ == "__main__":

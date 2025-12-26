@@ -1,6 +1,6 @@
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, BaseMessage
 from utils.config import get_llm
-from workflow.state import CustomState, AgentType
+from workflow.state import RootState, AgentType
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, TypedDict
 from langgraph.graph import StateGraph, END
@@ -9,7 +9,7 @@ from langfuse.langchain import CallbackHandler
 
 # 에이전트 내부 상태 타입 정의
 class AgentState(TypedDict):
-    message_history: Dict[str, Any]  # 전체 토론 상태
+    message_history: RootState  # 전체 토론 상태
     context: str  # 검색된 컨텍스트
     messages: List[BaseMessage]  # LLM에 전달할 메시지
     response: str  # LLM 응답
@@ -99,7 +99,7 @@ class Agent(ABC):
         return {**state, "message_history": new_message_history}
 
     # 토론 실행
-    def run(self, state: AgentState) -> AgentState:
+    def run(self, state: RootState) -> RootState:
         # 초기 에이전트 상태 구성
         agent_state = AgentState(
             message_history=state, context="", messages=[], response=""
