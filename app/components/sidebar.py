@@ -33,9 +33,9 @@ def rename_file(old_path: str, new_name_key: str):
             st.session_state.selected_pdfs.remove(old_filename)
             st.session_state.selected_pdfs.append(new_name)
 
-        st.toast(f"✅ '{new_name}' 변경되었습니다!", icon="✅")
+        st.toast(f"'{new_name}' 변경되었습니다!", icon="✅")
     except Exception as e:
-        st.toast(f"❌ 오류: {e}", icon="❌")
+        st.toast(f"오류: {e}", icon="❌")
 
 
 def delete_file(path: str, filename: str):
@@ -43,9 +43,9 @@ def delete_file(path: str, filename: str):
         os.remove(path)
         if filename in st.session_state.selected_pdfs:
             st.session_state.selected_pdfs.remove(filename)
-        st.toast(f"✅ '{filename}' 삭제되었습니다!", icon="✅")
+        st.toast(f"'{filename}' 삭제되었습니다!", icon="✅")
     except Exception as e:
-        st.toast(f"❌ 오류: {e}", icon="❌")
+        st.toast(f"오류: {e}", icon="❌")
 
 
 def render_artifacts_ui():
