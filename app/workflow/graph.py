@@ -1,6 +1,6 @@
 from langgraph.graph import END, StateGraph
 from workflow.agents.master_agent import MasterAgent
-from workflow.agents.output_agent import OutputAgent
+from workflow.agents.general_agent import GeneralAgent
 from workflow.agents.search_agent import SearchAgent
 from workflow.state import AgentType, RootState
 
@@ -9,26 +9,26 @@ def create_workflow(session_id: str = ""):
     workflow = StateGraph(RootState)
 
     master_agent = MasterAgent(session_id=session_id)
-    output_agent = OutputAgent(session_id=session_id)
+    general_agent = GeneralAgent(session_id=session_id)
     search_agent = SearchAgent(session_id=session_id)
 
     workflow.add_node(AgentType.MASTER, master_agent.run)
-    workflow.add_node(AgentType.OUTPUT, output_agent.run)
+    workflow.add_node(AgentType.GENERAL, general_agent.run)
     workflow.add_node(AgentType.SEARCH, search_agent.run)
 
     workflow.set_entry_point(AgentType.MASTER)
 
     def route_master(state: RootState):
-        return state.get("next_node", AgentType.OUTPUT)
+        return state.get("next_node", AgentType.GENERAL)
 
     workflow.add_conditional_edges(
         AgentType.MASTER,
         route_master,
-        {AgentType.SEARCH: AgentType.SEARCH, AgentType.OUTPUT: AgentType.OUTPUT},
+        {AgentType.SEARCH: AgentType.SEARCH, AgentType.GENERAL: AgentType.GENERAL},
     )
 
     workflow.add_edge(AgentType.SEARCH, END)
-    workflow.add_edge(AgentType.OUTPUT, END)
+    workflow.add_edge(AgentType.GENERAL, END)
 
     return workflow.compile()
 

@@ -9,7 +9,7 @@ from workflow.state import AgentType
 class RouteDecision(BaseModel):
     """Decision model for routing the conversation."""
 
-    next_node: Literal[AgentType.OUTPUT, AgentType.SEARCH] = Field(
+    next_node: Literal[AgentType.GENERAL, AgentType.SEARCH] = Field(
         description="The next agent to route the conversation to."
     )
 
@@ -26,7 +26,7 @@ class MasterAgent(Agent):
         return (
             "Analyze the user's latest query. "
             "If it requires searching for research papers, finding academic references, or looking up technical information, route to SEARCH_AGENT. "
-            "If it is a general question, greeting, summary request without search, or conversation, route to OUTPUT_AGENT."
+            "If it is a general question, greeting, summary request without search, or conversation, route to GENERAL_AGENT."
         )
 
     def _generate_response(self, state: AgentState) -> AgentState:

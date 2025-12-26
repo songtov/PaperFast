@@ -4,11 +4,11 @@ from workflow.agents.agent import Agent
 from workflow.state import AgentType
 
 
-class OutputAgent(Agent):
+class GeneralAgent(Agent):
     def __init__(self, session_id: str):
         super().__init__(
             system_prompt="You are a helpful assistant.",
-            role=AgentType.OUTPUT,
+            role=AgentType.GENERAL,
             session_id=session_id,
         )
 
