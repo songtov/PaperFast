@@ -10,15 +10,20 @@ from workflow.state import AgentType, RootState
 
 
 class GeneralAgent(Agent):
-    def __init__(self, session_id: str):
+    def __init__(self, session_id: str, k: int = 5):
         super().__init__(
             system_prompt="You are a helpful assistant. You can specific tools to answer the user query.",
             role=AgentType.GENERAL,
             session_id=session_id,
+            k=k,
         )
 
     def _create_prompt(self, state: Dict[str, Any]) -> str:
-        return "Answer the user query using the available tools if necessary."
+        context = state.get("context", "")
+        prompt = "Answer the user query using the available tools if necessary."
+        if context:
+            prompt += f"\n\nHere is the full text or context from the selected documents. Use this to answer the user's question, especially if they ask for a summary:\n{context}"
+        return prompt
 
     async def _generate_response(self, state: AgentState) -> AgentState:
         client = MultiServerMCPClient(

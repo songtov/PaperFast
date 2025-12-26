@@ -9,7 +9,7 @@ from workflow.state import AgentType
 class RouteDecision(BaseModel):
     """Decision model for routing the conversation."""
 
-    next_node: Literal[AgentType.GENERAL, AgentType.SEARCH] = Field(
+    next_node: Literal[AgentType.GENERAL, AgentType.SEARCH, AgentType.SUMMARY] = Field(
         description="The next agent to route the conversation to."
     )
 
@@ -23,11 +23,28 @@ class MasterAgent(Agent):
         )
 
     def _create_prompt(self, state: Dict[str, Any]) -> str:
-        return (
+        import streamlit as st
+
+        has_pdfs = False
+        try:
+            if "selected_pdfs" in st.session_state and st.session_state.selected_pdfs:
+                has_pdfs = True
+        except Exception:
+            pass
+
+        base_prompt = (
             "Analyze the user's latest query. "
-            "Route to SEARCH_AGENT ONLY if the user specifically asks for research papers, arxiv papers, or academic literature. "
-            "For all other queries, including general web search, current events, news, weather, or technical questions not related to academic papers, route to GENERAL_AGENT."
+            "Route to SEARCH_AGENT ONLY if the user specifically asks to *search* for new research papers, arxiv papers, or academic literature. "
         )
+
+        if has_pdfs:
+            base_prompt += "If the user asks to summarize, explain, or chat about the selected PDF/paper (e.g. 'Summarize this paper', 'What is this PDF about?'), route to SUMMARY_AGENT. "
+        else:
+            base_prompt += "If the user asks to summarize a paper but no PDF is selected, route to GENERAL_AGENT. "
+
+        base_prompt += "For all other queries, including general web search, current events, news, weather, or technical questions not related to searching for new papers, route to GENERAL_AGENT."
+
+        return base_prompt
 
     def _generate_response(self, state: AgentState) -> AgentState:
         messages = state["messages"]
