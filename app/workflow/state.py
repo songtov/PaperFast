@@ -19,4 +19,4 @@ def replace_messages(old: List[Dict], new: List[Dict]) -> List[Dict]:
 class RootState(TypedDict):
     messages: Annotated[List[Dict], replace_messages]
     prev_node: Annotated[str, last_write_wins]
-    next_step: Annotated[str, last_write_wins]
+    next_node: Annotated[str, last_write_wins]

@@ -19,7 +19,7 @@ def create_workflow(session_id: str = ""):
     workflow.set_entry_point(AgentType.MASTER)
 
     def route_master(state: RootState):
-        return state.get("next_step", AgentType.OUTPUT)
+        return state.get("next_node", AgentType.OUTPUT)
 
     workflow.add_conditional_edges(
         AgentType.MASTER,

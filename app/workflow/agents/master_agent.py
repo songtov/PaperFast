@@ -5,10 +5,11 @@ from pydantic import BaseModel, Field
 from utils.config import get_llm
 from typing import Literal
 
+
 class RouteDecision(BaseModel):
     """Decision model for routing the conversation."""
 
-    next_step: Literal[AgentType.OUTPUT, AgentType.SEARCH] = Field(
+    next_node: Literal[AgentType.OUTPUT, AgentType.SEARCH] = Field(
         description="The next agent to route the conversation to."
     )
 
@@ -42,27 +43,27 @@ class MasterAgent(Agent):
         # AgentState defines response: str.
         # So we should probably serialize it or handle it carefully.
         # However, _update_state reads it.
-        # Let's store the next_step string in response for compatibility?
+        # Let's store the next_node string in response for compatibility?
         # Or better, let's just return the object and handle type mismatch
         # if Python runtime doesn't enforce it strictly (TypedDict doesn't at runtime).
         # To be safe and clean, let's keep it as an object here effectively
         # but technically we might want to adjust AgentState if we want strict typing.
-        # For this refactor, I will return the next_step string as the response
+        # For this refactor, I will return the next_node string as the response
         # so it stays compatible with string-based expectations elsewhere if any
         # (though duplicate check is unique to MasterAgent logic mostly).
 
         return {**state, "response": response}
 
     def _update_state(self, state: Dict[str, Any]) -> Dict[str, Any]:
-        message_history = state["message_history"]
+        root_state = state["root_state"]
         # response is now a RouteDecision object
         decision: RouteDecision = state["response"]
 
-        new_message_history = message_history.copy()
+        new_root_state = root_state.copy()
 
         # Routing logic using the structured object
-        new_message_history["next_step"] = decision.next_step
+        new_root_state["next_node"] = decision.next_node
 
-        new_message_history["prev_node"] = self.role
+        new_root_state["prev_node"] = self.role
 
-        return {**state, "message_history": new_message_history}
+        return {**state, "root_state": new_root_state}

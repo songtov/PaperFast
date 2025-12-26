@@ -9,7 +9,7 @@ from langfuse.langchain import CallbackHandler
 
 # 에이전트 내부 상태 타입 정의
 class AgentState(TypedDict):
-    message_history: RootState  # 전체 토론 상태
+    root_state: RootState  # 전체 토론 상태
     context: str  # 검색된 컨텍스트
     messages: List[BaseMessage]  # LLM에 전달할 메시지
     response: str  # LLM 응답
@@ -44,14 +44,14 @@ class Agent(ABC):
 
     # 프롬프트 메시지 준비
     def _prepare_messages(self, state: AgentState) -> AgentState:
-        debate_state = state["message_history"]
+        root_state = state["root_state"]
         context = state["context"]
 
         # 시스템 프롬프트로 시작
         messages = [SystemMessage(content=self.system_prompt)]
 
         # 기존 대화 기록 추가
-        for message in debate_state["messages"]:
+        for message in root_state["messages"]:
             if message["role"] == "assistant":
                 messages.append(AIMessage(content=message["content"]))
             else:
@@ -60,7 +60,7 @@ class Agent(ABC):
                 )
 
         # 프롬프트 생성 (검색된 컨텍스트 포함)
-        prompt = self._create_prompt({**debate_state, "context": context})
+        prompt = self._create_prompt({**root_state, "context": context})
         messages.append(HumanMessage(content=prompt))
 
         # 상태 업데이트
@@ -80,30 +80,28 @@ class Agent(ABC):
 
     # 상태 업데이트
     def _update_state(self, state: AgentState) -> AgentState:
-        message_history = state["message_history"]
+        root_state = state["root_state"]
         response = state["response"]
 
-        # 메세지 상태 복사 및 업데이트
-        new_message_history = message_history.copy()
+        # 상태 복사 및 업데이트
+        new_root_state = root_state.copy()
 
         # 에이전트 응답 추가
         # Create a new list to avoid mutating the shared session state
-        new_messages = list(new_message_history["messages"])
+        new_messages = list(new_root_state["messages"])
         new_messages.append({"role": self.role, "content": response})
-        new_message_history["messages"] = new_messages
+        new_root_state["messages"] = new_messages
 
         # 이전 노드 정보 업데이트
-        new_message_history["prev_node"] = self.role
+        new_root_state["prev_node"] = self.role
 
         # 상태 업데이트
-        return {**state, "message_history": new_message_history}
+        return {**state, "root_state": new_root_state}
 
     # 토론 실행
     def run(self, state: RootState) -> RootState:
         # 초기 에이전트 상태 구성
-        agent_state = AgentState(
-            message_history=state, context="", messages=[], response=""
-        )
+        agent_state = AgentState(root_state=state, context="", messages=[], response="")
 
         # 내부 그래프 실행
         langfuse_handler = CallbackHandler()
@@ -112,8 +110,8 @@ class Agent(ABC):
             config={"callbacks": [langfuse_handler], "session_id": self.session_id},
         )
 
-        # 최종 메세지 상태 반환
-        return result["message_history"]
+        # 최종 상태 반환
+        return result["root_state"]
 
     def visualize(self):
         return self.graph.get_graph().draw_mermaid_png()
