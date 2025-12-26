@@ -3,7 +3,7 @@ from typing import Annotated, Dict, List, TypedDict
 
 class AgentType:
     MASTER = "MASTER_AGENT"
-    OUTPUT = "OUTPUT_AGENT"
+    GENERAL = "GENERAL_AGENT"
     SEARCH = "SEARCH_AGENT"
 
 
