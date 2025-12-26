@@ -17,7 +17,6 @@ class AgentState(TypedDict):
 
 # 에이전트 추상 클래스 정의
 class Agent(ABC):
-    #
     def __init__(self, system_prompt: str, role: str, session_id: str = None):
         self.system_prompt = system_prompt
         self.role = role
@@ -90,11 +89,11 @@ class Agent(ABC):
         # 에이전트 응답 추가
         # Create a new list to avoid mutating the shared session state
         new_messages = list(new_message_history["messages"])
-        new_messages.append({"role": str(self.role), "content": response})
+        new_messages.append({"role": self.role, "content": response})
         new_message_history["messages"] = new_messages
 
         # 이전 노드 정보 업데이트
-        new_message_history["prev_node"] = str(self.role)
+        new_message_history["prev_node"] = self.role
 
         # 상태 업데이트
         return {**state, "message_history": new_message_history}

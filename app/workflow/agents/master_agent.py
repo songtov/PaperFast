@@ -3,12 +3,12 @@ from workflow.agents.agent import Agent, AgentState
 from workflow.state import AgentType
 from pydantic import BaseModel, Field
 from utils.config import get_llm
-
+from typing import Literal
 
 class RouteDecision(BaseModel):
     """Decision model for routing the conversation."""
 
-    next_step: AgentType = Field(
+    next_step: Literal[AgentType.OUTPUT, AgentType.SEARCH] = Field(
         description="The next agent to route the conversation to."
     )
 
@@ -30,6 +30,7 @@ class MasterAgent(Agent):
 
     def _generate_response(self, state: AgentState) -> AgentState:
         messages = state["messages"]
+
         # Use structured output
         llm = get_llm().with_structured_output(RouteDecision)
         response = llm.invoke(messages)
@@ -60,8 +61,8 @@ class MasterAgent(Agent):
         new_message_history = message_history.copy()
 
         # Routing logic using the structured object
-        new_message_history["next_step"] = str(decision.next_step)
+        new_message_history["next_step"] = decision.next_step
 
-        new_message_history["prev_node"] = str(self.role)
+        new_message_history["prev_node"] = self.role
 
         return {**state, "message_history": new_message_history}

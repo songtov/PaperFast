@@ -1,9 +1,7 @@
 from typing import TypedDict, List, Dict, Annotated
 
 
-from enum import StrEnum
-
-class AgentType(StrEnum):
+class AgentType:
     MASTER = "MASTER_AGENT"
     OUTPUT = "OUTPUT_AGENT"
     SEARCH = "SEARCH_AGENT"
