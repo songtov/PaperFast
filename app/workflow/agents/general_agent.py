@@ -3,7 +3,8 @@ from typing import Any, Dict
 
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langfuse.langchain import CallbackHandler
-from langgraph.prebuilt import create_react_agent
+from langchain.agents import create_agent
+from langchain.agents.middleware import SummarizationMiddleware
 from utils.config import get_llm
 from workflow.agents.agent import Agent, AgentState
 from workflow.state import AgentType, RootState
@@ -48,7 +49,18 @@ class GeneralAgent(Agent):
 
         # Create and run a react agent with the tools
         model = get_llm()
-        agent = create_react_agent(model, tools)
+        agent = create_agent(
+            model, 
+            tools, 
+            system_prompt=self.system_prompt, 
+            middleware=[
+                SummarizationMiddleware(
+                    model=model,
+                    trigger=("fraction", 0.6),
+                    keep=("fraction", 0.5),
+                )
+            ]
+        )
 
         # Use the messages prepared by _prepare_messages
         messages = state["messages"]
