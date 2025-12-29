@@ -22,31 +22,23 @@ class MasterAgent(Agent):
             session_id=session_id,
         )
 
+    def _retrieve_context(self, state: AgentState) -> AgentState:
+        # nothing to do...!
+        return {**state}
+
     def _create_prompt(self, state: Dict[str, Any]) -> str:
-        import os
-
-        has_pdfs = False
-        try:
-            raw_dir = "app/storage/raw"
-            if os.path.exists(raw_dir) and any(
-                f.lower().endswith(".pdf") for f in os.listdir(raw_dir)
-            ):
-                has_pdfs = True
-        except Exception:
-            pass
-
         base_prompt = (
-            "Analyze the user's latest query. "
-            "Route to SEARCH_AGENT ONLY if the user specifically asks to *search* for new research papers, arxiv papers, or academic literature. "
+            "Analyze the user's latest query and route to the most appropriate agent:\n\n"
+            "1. **SEARCH_AGENT**: Choose this ONLY if the user explicitly asks to *search* or *find* NEW research papers, arxiv papers, "
+            "or academic literature. Ideally for queries like 'find papers on X', 'search for Y'.\n\n"
+            "2. **SUMMARY_AGENT**: Choose this if the user asks to summarize, explain, question, or chat about a specific paper or the "
+            "currently selected/loaded PDF(s). Examples: 'Summarize this', 'What is the methodology?', 'Explain the conclusion'. "
+            "Even if you are unsure if a PDF is loaded, if the intent is clearly about analyzing a document, route here.\n\n"
+            "3. **GENERAL_AGENT**: Helper for everything else. Use this for general conversational queries, questions about current events, "
+            "web searches (non-academic), weather, or technical questions unrelated to finding new papers. Also use this if the user "
+            "asks to 'summarize' but clearly means a general concept rather than a specific document context, though SUMMARY_AGENT is safer for 'summarize this'.\n\n"
+            "DEFAULT to GENERAL_AGENT if unsure."
         )
-
-        if has_pdfs:
-            base_prompt += "If the user asks to summarize, explain, or chat about the stored PDF/papers (e.g. 'Summarize this paper', 'What is this PDF about?'), route to SUMMARY_AGENT. "
-        else:
-            base_prompt += "If the user asks to summarize a paper but no PDFs are stored, route to GENERAL_AGENT. "
-
-        base_prompt += "For all other queries, including general web search, current events, news, weather, or technical questions not related to searching for new papers, route to GENERAL_AGENT."
-
         return base_prompt
 
     def _generate_response(self, state: AgentState) -> AgentState:
@@ -55,22 +47,6 @@ class MasterAgent(Agent):
         # Use structured output
         llm = get_llm().with_structured_output(RouteDecision)
         response = llm.invoke(messages)
-
-        # Store the Pydantic model directly in the response field for now,
-        # or we could store the string representation.
-        # But AgentState.response is typed as str in agent.py (usually).
-        # Let's check agent.py again.
-        # AgentState defines response: str.
-        # So we should probably serialize it or handle it carefully.
-        # However, _update_state reads it.
-        # Let's store the next_node string in response for compatibility?
-        # Or better, let's just return the object and handle type mismatch
-        # if Python runtime doesn't enforce it strictly (TypedDict doesn't at runtime).
-        # To be safe and clean, let's keep it as an object here effectively
-        # but technically we might want to adjust AgentState if we want strict typing.
-        # For this refactor, I will return the next_node string as the response
-        # so it stays compatible with string-based expectations elsewhere if any
-        # (though duplicate check is unique to MasterAgent logic mostly).
 
         return {**state, "response": response}
 

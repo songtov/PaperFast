@@ -32,11 +32,13 @@ def rename_file(old_path: str, new_name_key: str):
         return
 
     try:
-        with st.spinner(f"'{new_name}'으로 변경 및 색인 업데이트 중..."):
-            os.rename(old_path, new_path)
-            # Use optimized rename
-            rename_document_in_vector_store(old_path, new_path)
-
+        empty_space = st.empty()
+        with empty_space.container():
+            with st.status(f"'{new_name}'으로 변경 및 색인 업데이트 중..."):
+                os.rename(old_path, new_path)
+                # Use optimized rename
+                rename_document_in_vector_store(old_path, new_path)
+        empty_space.empty()
         st.toast(f"'{new_name}' 변경되었습니다!", icon="✅")
     except Exception as e:
         st.toast(f"오류: {e}", icon="❌")
@@ -55,13 +57,13 @@ def delete_file(path: str, filename: str):
 
 
 def render_artifacts_ui():
-    st.markdown("### 현재 추가된 아티팩트")
+    st.markdown("### VectorDB 추가된 PDF")
 
     # List PDF files in the data directory
     pdf_files = [f for f in os.listdir(DATA_DIR) if f.lower().endswith(".pdf")]
 
     if not pdf_files:
-        st.info("📄 PDF 파일을 업로드하여 아티팩트로 추가할 수 있습니다.")
+        st.info("📄 PDF 파일을 업로드하여 추가할 수 있습니다.")
     else:
         st.write("저장된 파일 목록:")
 
@@ -145,7 +147,7 @@ def render_artifacts_ui():
 
 def render_sidebar() -> Dict[str, Any]:
     with st.sidebar:
-        tab1, tab2 = st.tabs(["아티팩트", "대화 이력"])
+        tab1, tab2 = st.tabs(["PDF", "대화 이력"])
 
         with tab1:
             render_artifacts_ui()

@@ -2,7 +2,6 @@ import os
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, TypedDict
 
-import streamlit as st
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from langfuse.langchain import CallbackHandler
 from langgraph.graph import END, StateGraph
@@ -51,48 +50,42 @@ class Agent(ABC):
         # 그래프 컴파일
         self.graph = workflow.compile()
 
-    # 자료 검색
     def _retrieve_context(self, state: AgentState) -> AgentState:
-        root_state = state["root_state"]
+        # Nothing
+        return {**state}
 
-        # Extract query from last user message
-        messages = root_state["messages"]
-        last_human_msg = next(
-            (m for m in reversed(messages) if m["role"] == "user"), None
-        )
-        query = last_human_msg["content"] if last_human_msg else ""
+    # # 자료 검색
+    # def _retrieve_context(self, state: AgentState) -> AgentState:
+    #     root_state = state["root_state"]
 
-        if not query:
-            with open("debug_log.txt", "a") as f:
-                f.write("Query is empty.\n")
-            return {**state, "context": ""}
+    #     # Extract query from last user message
+    #     messages = root_state["messages"]
+    #     last_human_msg = next(
+    #         (m for m in reversed(messages) if m["role"] == "user"), None
+    #     )
+    #     query = last_human_msg["content"] if last_human_msg else ""
 
-        # RAG Search on persistent Vector Store
-        # We search across all indexed documents.
-        docs = search_pdfs(query, k=self.k)
+    #     # RAG Search on persistent Vector Store
+    #     # We search across all indexed documents.
+    #     docs = search_pdfs(query, k=self.k)
 
-        # 컨텍스트 포맷팅
-        context = self._format_context(docs)
+    #     # 컨텍스트 포맷팅
+    #     context = self._format_context(docs)
 
-        with open("debug_log.txt", "a") as f:
-            f.write(f"DEBUG: Query: {query}\n")
-            f.write(f"DEBUG: Final Context Length: {len(context)}\n")
-            f.write(f"DEBUG: Context Content (First 200 chars): {context[:200]}\n")
+    #     # 상태 업데이트
+    #     return {**state, "context": context}
 
-        # 상태 업데이트
-        return {**state, "context": context}
-
-    # 검색 결과로 Context 생성
-    def _format_context(self, docs: list) -> str:
-        context = ""
-        for i, doc in enumerate(docs):
-            source = doc.metadata.get("source", "Unknown")
-            section = doc.metadata.get("section", "")
-            context += f"[문서 {i + 1}] 출처: {os.path.basename(source)}"
-            if section:
-                context += f", 섹션: {section}"
-            context += f"\n{doc.page_content}\n\n"
-        return context
+    # # 검색 결과로 Context 생성
+    # def _format_context(self, docs: list) -> str:
+    #     context = ""
+    #     for i, doc in enumerate(docs):
+    #         source = doc.metadata.get("source", "Unknown")
+    #         section = doc.metadata.get("section", "")
+    #         context += f"[문서 {i + 1}] 출처: {os.path.basename(source)}"
+    #         if section:
+    #             context += f", 섹션: {section}"
+    #         context += f"\n{doc.page_content}\n\n"
+    #     return context
 
     # 프롬프트 메시지 준비
     def _prepare_messages(self, state: AgentState) -> AgentState:
