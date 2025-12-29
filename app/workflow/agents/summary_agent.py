@@ -3,6 +3,7 @@ from typing import Any, Dict
 from workflow.agents.agent import Agent
 from workflow.state import AgentType
 
+
 class SummaryAgent(Agent):
     def __init__(self, session_id: str):
         super().__init__(

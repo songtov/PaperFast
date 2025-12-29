@@ -1,9 +1,10 @@
-import streamlit as st
 import os
-from langchain_community.vectorstores import FAISS
+from typing import Any, Dict, List, Optional
+
+import streamlit as st
 from langchain_community.document_loaders import PyPDFLoader
+from langchain_community.vectorstores import FAISS
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from typing import Any, Dict, Optional, List
 from utils.config import get_embeddings
 
 

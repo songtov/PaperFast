@@ -1,6 +1,6 @@
 from langgraph.graph import END, StateGraph
-from workflow.agents.master_agent import MasterAgent
 from workflow.agents.general_agent import GeneralAgent
+from workflow.agents.master_agent import MasterAgent
 from workflow.agents.search_agent import SearchAgent
 from workflow.agents.summary_agent import SummaryAgent
 from workflow.state import AgentType, RootState
