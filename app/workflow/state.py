@@ -6,6 +6,7 @@ class AgentType:
     GENERAL = "GENERAL_AGENT"
     SEARCH = "SEARCH_AGENT"
     SUMMARY = "SUMMARY_AGENT"
+    RAG = "RAG_AGENT"
 
 
 def last_write_wins(old: str, new: str) -> str:
