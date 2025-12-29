@@ -13,7 +13,14 @@ def invoke_workflow():
 
     workflow = create_workflow(session_id=session_id)
 
-    initial_state: RootState = {"messages": st.session_state.messages, "prev_node": ""}
+    # Get rag_enabled from session state, default to False
+    rag_enabled = st.session_state.get("rag_enabled", False)
+
+    initial_state: RootState = {
+        "messages": st.session_state.messages,
+        "prev_node": "",
+        "rag_enabled": rag_enabled,
+    }
 
     with st.spinner("로딩 중..."):
         langfuse_handler = CallbackHandler()

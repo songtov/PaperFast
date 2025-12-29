@@ -27,6 +27,21 @@ class MasterAgent(Agent):
         return {**state}
 
     def _create_prompt(self, state: Dict[str, Any]) -> str:
+        rag_enabled = state.get("rag_enabled", False)
+
+        if rag_enabled:
+            return (
+                "The user has explicitly requested to strictly use RAG (Retrieval-Augmented Generation). "
+                "You MUST route the query to one of the following document-aware agents:\n\n"
+                "1. **SUMMARY_AGENT**: Choose this if the user asks to summarize, explain, or get the 'main idea' of the currently selected PDF(s) *as a whole*. "
+                "Examples: 'Summarize this paper', 'What is the main conclusion?', 'Tell me about this document'.\n\n"
+                "2. **RAG_AGENT**: Choose this when the user asks specific questions about details *within* the selected PDF(s), or asks general questions "
+                "that should be answered using the document context. "
+                "Examples: 'What does the paper say about transformer architecture?', 'Find the section on experiments', 'Tell me about NAT'.\n\n"
+                "**DO NOT** choose SEARCH_AGENT or GENERAL_AGENT. They are DISABLED in this mode.\n"
+                "DEFAULT to RAG_AGENT if unsure."
+            )
+
         base_prompt = (
             "Analyze the user's latest query and route to the most appropriate agent:\n\n"
             "1. **SEARCH_AGENT**: Choose this ONLY if the user explicitly asks to *search* or *find* NEW research papers, arxiv papers, "

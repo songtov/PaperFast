@@ -22,3 +22,4 @@ class RootState(TypedDict):
     messages: Annotated[List[Dict], replace_messages]
     prev_node: Annotated[str, last_write_wins]
     next_node: Annotated[str, last_write_wins]
+    rag_enabled: bool

@@ -147,10 +147,17 @@ def render_artifacts_ui():
 
 def render_sidebar() -> Dict[str, Any]:
     with st.sidebar:
-        tab1, tab2 = st.tabs(["PDF", "대화 이력"])
+        tab1, tab2, tab3 = st.tabs(["PDF", "대화 이력", "설정"])
 
         with tab1:
             render_artifacts_ui()
 
         with tab2:
             render_history_ui()
+
+        with tab3:
+            st.checkbox(
+                "RAG 답변 포함",
+                key="rag_enabled",
+                help="체크하면 시스템이 업로드된 PDF 내용을 우선적으로 참조하여 답변합니다.",
+            )
