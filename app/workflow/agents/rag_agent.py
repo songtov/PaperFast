@@ -10,7 +10,7 @@ class RagAgent(Agent):
     def __init__(self, session_id: str):
         super().__init__(
             system_prompt="You are a helpful assistant that summarizes research papers. Use the provided context to create a comprehensive summary. if user query is in Korean answer in Korean",
-            role=AgentType.SUMMARY,
+            role=AgentType.RAG,
             session_id=session_id,
         )
 

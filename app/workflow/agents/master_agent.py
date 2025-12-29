@@ -9,9 +9,9 @@ from workflow.state import AgentType
 class RouteDecision(BaseModel):
     """Decision model for routing the conversation."""
 
-    next_node: Literal[AgentType.GENERAL, AgentType.SEARCH, AgentType.SUMMARY, AgentType.RAG] = Field(
-        description="The next agent to route the conversation to."
-    )
+    next_node: Literal[
+        AgentType.GENERAL, AgentType.SEARCH, AgentType.SUMMARY, AgentType.RAG
+    ] = Field(description="The next agent to route the conversation to.")
 
 
 class MasterAgent(Agent):
@@ -31,13 +31,15 @@ class MasterAgent(Agent):
             "Analyze the user's latest query and route to the most appropriate agent:\n\n"
             "1. **SEARCH_AGENT**: Choose this ONLY if the user explicitly asks to *search* or *find* NEW research papers, arxiv papers, "
             "or academic literature. Ideally for queries like 'find papers on X', 'search for Y'.\n\n"
-            "2. **SUMMARY_AGENT**: Choose this if the user asks to summarize, explain, question, or chat about a specific paper or the "
-            "currently selected/loaded PDF(s). Examples: 'Summarize this', 'What is the methodology?', 'Explain the conclusion'. "
-            "Even if you are unsure if a PDF is loaded, if the intent is clearly about analyzing a document, route here.\n\n"
+            "2. **SUMMARY_AGENT**: Choose this if the user asks to summarize, explain, or get the 'main idea' of the currently selected PDF(s) *as a whole*. "
+            "Examples: 'Summarize this paper', 'What is the main conclusion?', 'Tell me about this document'. "
+            "Use this for high-level understanding of the document content.\n\n"
             "3. **GENERAL_AGENT**: Helper for everything else. Use this for general conversational queries, questions about current events, "
             "web searches (non-academic), weather, or technical questions unrelated to finding new papers. Also use this if the user "
-            "asks to 'summarize' but clearly means a general concept rather than a specific document context, though SUMMARY_AGENT is safer for 'summarize this'.\n\n"
-            "4. **RAG_AGENT**: RAG answer from pdf in vecor db. If user wants specific information in pdf and query about it route to this agent: RAG_AGENT. \n\n"
+            "asks to 'summarize' but clearly means a general concept rather than a specific document context.\n\n"
+            "4. **RAG_AGENT**: Use this when the user asks specific questions about details *within* the selected PDF(s). "
+            "Examples: 'What does the paper say about transformer architecture?', 'Find the section on experiments', 'What is the value of alpha used?'. "
+            "If the user wants to retrieve specific facts, figures, or sections from the PDF, route here.\n\n"
             "DEFAULT to GENERAL_AGENT if unsure."
         )
         return base_prompt
