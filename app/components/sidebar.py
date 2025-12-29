@@ -5,7 +5,6 @@ import streamlit as st
 from retrieval.vector_store import (
     add_pdfs_to_vector_store,
     delete_document_from_vector_store,
-    rebuild_index,
     rename_document_in_vector_store,
 )
 

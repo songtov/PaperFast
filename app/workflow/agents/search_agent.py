@@ -1,8 +1,7 @@
 import asyncio
 import os
-from typing import Any, Dict, List
+from typing import Any, Dict
 
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langfuse.langchain import CallbackHandler
 from langgraph.prebuilt import create_react_agent

@@ -1,9 +1,9 @@
+import os
 from typing import Any, Dict
 
-import os
+from retrieval.vector_store import get_all_documents
 from workflow.agents.agent import Agent
 from workflow.state import AgentType
-from retrieval.vector_store import search_pdfs, get_all_documents
 
 
 class SummaryAgent(Agent):
