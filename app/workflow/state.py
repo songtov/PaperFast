@@ -5,6 +5,8 @@ class AgentType:
     MASTER = "MASTER_AGENT"
     GENERAL = "GENERAL_AGENT"
     SEARCH = "SEARCH_AGENT"
+    SUMMARY = "SUMMARY_AGENT"
+    RAG = "RAG_AGENT"
 
 
 def last_write_wins(old: str, new: str) -> str:
@@ -20,3 +22,4 @@ class RootState(TypedDict):
     messages: Annotated[List[Dict], replace_messages]
     prev_node: Annotated[str, last_write_wins]
     next_node: Annotated[str, last_write_wins]
+    rag_enabled: bool

@@ -9,9 +9,9 @@ from workflow.state import AgentType
 class RouteDecision(BaseModel):
     """Decision model for routing the conversation."""
 
-    next_node: Literal[AgentType.GENERAL, AgentType.SEARCH] = Field(
-        description="The next agent to route the conversation to."
-    )
+    next_node: Literal[
+        AgentType.GENERAL, AgentType.SEARCH, AgentType.SUMMARY, AgentType.RAG
+    ] = Field(description="The next agent to route the conversation to.")
 
 
 class MasterAgent(Agent):
@@ -22,12 +22,42 @@ class MasterAgent(Agent):
             session_id=session_id,
         )
 
+    def _retrieve_context(self, state: AgentState) -> AgentState:
+        # nothing to do...!
+        return {**state}
+
     def _create_prompt(self, state: Dict[str, Any]) -> str:
-        return (
-            "Analyze the user's latest query. "
-            "Route to SEARCH_AGENT ONLY if the user specifically asks for research papers, arxiv papers, or academic literature. "
-            "For all other queries, including general web search, current events, news, weather, or technical questions not related to academic papers, route to GENERAL_AGENT."
+        rag_enabled = state.get("rag_enabled", False)
+
+        if rag_enabled:
+            return (
+                "The user has explicitly requested to strictly use RAG (Retrieval-Augmented Generation). "
+                "You MUST route the query to one of the following document-aware agents:\n\n"
+                "1. **SUMMARY_AGENT**: Choose this if the user asks to summarize, explain, or get the 'main idea' of the currently selected PDF(s) *as a whole*. "
+                "Examples: 'Summarize this paper', 'What is the main conclusion?', 'Tell me about this document'.\n\n"
+                "2. **RAG_AGENT**: Choose this when the user asks specific questions about details *within* the selected PDF(s), or asks general questions "
+                "that should be answered using the document context. "
+                "Examples: 'What does the paper say about transformer architecture?', 'Find the section on experiments', 'Tell me about NAT'.\n\n"
+                "**DO NOT** choose SEARCH_AGENT or GENERAL_AGENT. They are DISABLED in this mode.\n"
+                "DEFAULT to RAG_AGENT if unsure."
+            )
+
+        base_prompt = (
+            "Analyze the user's latest query and route to the most appropriate agent:\n\n"
+            "1. **SEARCH_AGENT**: Choose this ONLY if the user explicitly asks to *search* or *find* NEW research papers, arxiv papers, "
+            "or academic literature. Ideally for queries like 'find papers on X', 'search for Y'.\n\n"
+            "2. **SUMMARY_AGENT**: Choose this if the user asks to summarize, explain, or get the 'main idea' of the currently selected PDF(s) *as a whole*. "
+            "Examples: 'Summarize this paper', 'What is the main conclusion?', 'Tell me about this document'. "
+            "Use this for high-level understanding of the document content.\n\n"
+            "3. **GENERAL_AGENT**: Helper for everything else. Use this for general conversational queries, questions about current events, "
+            "web searches (non-academic), weather, or technical questions unrelated to finding new papers. Also use this if the user "
+            "asks to 'summarize' but clearly means a general concept rather than a specific document context.\n\n"
+            "4. **RAG_AGENT**: Use this when the user asks specific questions about details *within* the selected PDF(s). "
+            "Examples: 'What does the paper say about transformer architecture?', 'Find the section on experiments', 'What is the value of alpha used?'. "
+            "If the user wants to retrieve specific facts, figures, or sections from the PDF, route here.\n\n"
+            "DEFAULT to GENERAL_AGENT if unsure."
         )
+        return base_prompt
 
     def _generate_response(self, state: AgentState) -> AgentState:
         messages = state["messages"]
@@ -35,22 +65,6 @@ class MasterAgent(Agent):
         # Use structured output
         llm = get_llm().with_structured_output(RouteDecision)
         response = llm.invoke(messages)
-
-        # Store the Pydantic model directly in the response field for now,
-        # or we could store the string representation.
-        # But AgentState.response is typed as str in agent.py (usually).
-        # Let's check agent.py again.
-        # AgentState defines response: str.
-        # So we should probably serialize it or handle it carefully.
-        # However, _update_state reads it.
-        # Let's store the next_node string in response for compatibility?
-        # Or better, let's just return the object and handle type mismatch
-        # if Python runtime doesn't enforce it strictly (TypedDict doesn't at runtime).
-        # To be safe and clean, let's keep it as an object here effectively
-        # but technically we might want to adjust AgentState if we want strict typing.
-        # For this refactor, I will return the next_node string as the response
-        # so it stays compatible with string-based expectations elsewhere if any
-        # (though duplicate check is unique to MasterAgent logic mostly).
 
         return {**state, "response": response}
 

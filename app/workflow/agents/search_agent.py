@@ -1,8 +1,7 @@
 import asyncio
 import os
-from typing import Any, Dict, List
+from typing import Any, Dict
 
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langfuse.langchain import CallbackHandler
 from langgraph.prebuilt import create_react_agent
@@ -14,7 +13,7 @@ from workflow.state import AgentType, RootState
 class SearchAgent(Agent):
     def __init__(self, session_id: str):
         super().__init__(
-            system_prompt="You are a helpful research paper search agent. Search for useful research paper based on user query.",
+            system_prompt="You are a helpful research paper search agent. Search for useful research paper based on user query. If user query is in Korean answer in Korean",
             role=AgentType.SEARCH,
             session_id=session_id,
         )

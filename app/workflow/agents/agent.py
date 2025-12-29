@@ -5,7 +5,7 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 from langfuse.langchain import CallbackHandler
 from langgraph.graph import END, StateGraph
 from utils.config import get_llm
-from workflow.state import AgentType, RootState
+from workflow.state import RootState
 
 
 # 에이전트 내부 상태 타입 정의
@@ -18,9 +18,12 @@ class AgentState(TypedDict):
 
 # 에이전트 추상 클래스 정의
 class Agent(ABC):
-    def __init__(self, system_prompt: str, role: str, session_id: str = None):
+    def __init__(
+        self, system_prompt: str, role: str, session_id: str = None, k: int = 5
+    ):
         self.system_prompt = system_prompt
         self.role = role
+        self.k = k
         self._setup_graph()  # 그래프 설정
         self.session_id = session_id  # langfuse 세션 ID
 
@@ -29,19 +32,25 @@ class Agent(ABC):
         workflow = StateGraph(AgentState)
 
         # 노드 추가
+        workflow.add_node("retrieve_context", self._retrieve_context)  # 자료 검색
         workflow.add_node("prepare_messages", self._prepare_messages)  # 메시지 준비
         workflow.add_node("generate_response", self._generate_response)  # 응답 생성
         workflow.add_node("update_state", self._update_state)  # 상태 업데이트
 
         # 엣지 추가 - 순차 실행 흐름
+        workflow.add_edge("retrieve_context", "prepare_messages")
         workflow.add_edge("prepare_messages", "generate_response")
         workflow.add_edge("generate_response", "update_state")
 
-        workflow.set_entry_point("prepare_messages")
+        workflow.set_entry_point("retrieve_context")
         workflow.add_edge("update_state", END)
 
         # 그래프 컴파일
         self.graph = workflow.compile()
+
+    def _retrieve_context(self, state: AgentState) -> AgentState:
+        # Nothing
+        return {**state}
 
     # 프롬프트 메시지 준비
     def _prepare_messages(self, state: AgentState) -> AgentState:
@@ -55,6 +64,8 @@ class Agent(ABC):
         for message in root_state["messages"]:
             if message["role"] == "assistant":
                 messages.append(AIMessage(content=message["content"]))
+            elif message["role"] == "user":
+                messages.append(HumanMessage(content=message["content"]))
             else:
                 messages.append(
                     HumanMessage(content=f"{message['role']}: {message['content']}")
@@ -105,11 +116,19 @@ class Agent(ABC):
         agent_state = AgentState(root_state=state, context="", messages=[], response="")
 
         # 내부 그래프 실행
-        langfuse_handler = CallbackHandler()
-        result = self.graph.invoke(
-            agent_state,
-            config={"callbacks": [langfuse_handler], "session_id": self.session_id},
-        )
+        try:
+            langfuse_handler = CallbackHandler()
+            result = self.graph.invoke(
+                agent_state,
+                config={"callbacks": [langfuse_handler], "session_id": self.session_id},
+            )
+        except Exception as e:
+            # Fallback if Langfuse fails or is not configured
+            print(f"Warning: Langfuse callback failed or disabled: {e}")
+            result = self.graph.invoke(
+                agent_state,
+                config={"session_id": self.session_id},
+            )
 
         # 최종 상태 반환
         return result["root_state"]

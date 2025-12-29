@@ -1,24 +1,30 @@
 import asyncio
 from typing import Any, Dict
 
+from langchain.agents import create_agent
+from langchain.agents.middleware import SummarizationMiddleware
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langfuse.langchain import CallbackHandler
-from langgraph.prebuilt import create_react_agent
 from utils.config import get_llm
 from workflow.agents.agent import Agent, AgentState
 from workflow.state import AgentType, RootState
 
 
 class GeneralAgent(Agent):
-    def __init__(self, session_id: str):
+    def __init__(self, session_id: str, k: int = 5):
         super().__init__(
             system_prompt="You are a helpful assistant. You can specific tools to answer the user query.",
             role=AgentType.GENERAL,
             session_id=session_id,
+            k=k,
         )
 
     def _create_prompt(self, state: Dict[str, Any]) -> str:
-        return "Answer the user query using the available tools if necessary."
+        context = state.get("context", "")
+        prompt = "Answer the user query using the available tools if necessary."
+        if context:
+            prompt += f"\n\nHere is the full text or context from the selected documents. Use this to answer the user's question, especially if they ask for a summary:\n{context}"
+        return prompt
 
     async def _generate_response(self, state: AgentState) -> AgentState:
         client = MultiServerMCPClient(
@@ -43,7 +49,18 @@ class GeneralAgent(Agent):
 
         # Create and run a react agent with the tools
         model = get_llm()
-        agent = create_react_agent(model, tools)
+        agent = create_agent(
+            model,
+            tools,
+            system_prompt=self.system_prompt,
+            middleware=[
+                SummarizationMiddleware(
+                    model=model,
+                    trigger=("fraction", 0.6),
+                    keep=("fraction", 0.5),
+                )
+            ],
+        )
 
         # Use the messages prepared by _prepare_messages
         messages = state["messages"]

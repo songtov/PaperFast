@@ -72,3 +72,7 @@ settings = Settings()
 
 def get_llm():
     return settings.get_llm()
+
+
+def get_embeddings():
+    return settings.get_embeddings()
