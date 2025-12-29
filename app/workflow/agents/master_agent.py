@@ -23,11 +23,14 @@ class MasterAgent(Agent):
         )
 
     def _create_prompt(self, state: Dict[str, Any]) -> str:
-        import streamlit as st
+        import os
 
         has_pdfs = False
         try:
-            if "selected_pdfs" in st.session_state and st.session_state.selected_pdfs:
+            raw_dir = "app/storage/raw"
+            if os.path.exists(raw_dir) and any(
+                f.lower().endswith(".pdf") for f in os.listdir(raw_dir)
+            ):
                 has_pdfs = True
         except Exception:
             pass
@@ -38,9 +41,9 @@ class MasterAgent(Agent):
         )
 
         if has_pdfs:
-            base_prompt += "If the user asks to summarize, explain, or chat about the selected PDF/paper (e.g. 'Summarize this paper', 'What is this PDF about?'), route to SUMMARY_AGENT. "
+            base_prompt += "If the user asks to summarize, explain, or chat about the stored PDF/papers (e.g. 'Summarize this paper', 'What is this PDF about?'), route to SUMMARY_AGENT. "
         else:
-            base_prompt += "If the user asks to summarize a paper but no PDF is selected, route to GENERAL_AGENT. "
+            base_prompt += "If the user asks to summarize a paper but no PDFs are stored, route to GENERAL_AGENT. "
 
         base_prompt += "For all other queries, including general web search, current events, news, weather, or technical questions not related to searching for new papers, route to GENERAL_AGENT."
 

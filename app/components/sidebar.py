@@ -2,8 +2,14 @@ import os
 from typing import Any, Dict
 
 import streamlit as st
+from retrieval.vector_store import (
+    add_pdfs_to_vector_store,
+    delete_document_from_vector_store,
+    rebuild_index,
+    rename_document_in_vector_store,
+)
 
-DATA_DIR = "data/papers"
+DATA_DIR = "app/storage/raw"
 os.makedirs(DATA_DIR, exist_ok=True)
 
 
@@ -26,13 +32,10 @@ def rename_file(old_path: str, new_name_key: str):
         return
 
     try:
-        os.rename(old_path, new_path)
-        old_filename = os.path.basename(old_path)
-
-        # Update selection state
-        if old_filename in st.session_state.selected_pdfs:
-            st.session_state.selected_pdfs.remove(old_filename)
-            st.session_state.selected_pdfs.append(new_name)
+        with st.spinner(f"'{new_name}'으로 변경 및 색인 업데이트 중..."):
+            os.rename(old_path, new_path)
+            # Use optimized rename
+            rename_document_in_vector_store(old_path, new_path)
 
         st.toast(f"'{new_name}' 변경되었습니다!", icon="✅")
     except Exception as e:
@@ -41,9 +44,11 @@ def rename_file(old_path: str, new_name_key: str):
 
 def delete_file(path: str, filename: str):
     try:
-        os.remove(path)
-        if filename in st.session_state.selected_pdfs:
-            st.session_state.selected_pdfs.remove(filename)
+        with st.spinner(f"'{filename}' 삭제 및 색인 정리 중..."):
+            os.remove(path)
+            # Use optimized delete
+            delete_document_from_vector_store(filename)
+
         st.toast(f"'{filename}' 삭제되었습니다!", icon="✅")
     except Exception as e:
         st.toast(f"오류: {e}", icon="❌")
@@ -52,17 +57,13 @@ def delete_file(path: str, filename: str):
 def render_artifacts_ui():
     st.markdown("### 현재 추가된 아티팩트")
 
-    # Initialize selected_pdfs in session_state if not present
-    if "selected_pdfs" not in st.session_state:
-        st.session_state.selected_pdfs = []
-
     # List PDF files in the data directory
     pdf_files = [f for f in os.listdir(DATA_DIR) if f.lower().endswith(".pdf")]
 
     if not pdf_files:
         st.info("📄 PDF 파일을 업로드하여 아티팩트로 추가할 수 있습니다.")
     else:
-        st.write("RAG 검색에 사용할 파일을 선택하세요:")
+        st.write("저장된 파일 목록:")
 
         # Grid layout for better spacing
         for pdf_file in pdf_files:
@@ -70,28 +71,14 @@ def render_artifacts_ui():
             size = os.path.getsize(file_path)
 
             # Create columns for layout
-            col1, col2, col3 = st.columns([0.1, 0.7, 0.2])
+            col1, col2 = st.columns([0.8, 0.2])
 
             with col1:
-                # Checkbox for selection
-                is_selected = st.checkbox(
-                    "Select",
-                    value=pdf_file in st.session_state.selected_pdfs,
-                    key=f"select_{pdf_file}",
-                    label_visibility="collapsed",
-                )
-
-                if is_selected and pdf_file not in st.session_state.selected_pdfs:
-                    st.session_state.selected_pdfs.append(pdf_file)
-                elif not is_selected and pdf_file in st.session_state.selected_pdfs:
-                    st.session_state.selected_pdfs.remove(pdf_file)
-
-            with col2:
                 # Just display filename
                 st.write(f"📄 {pdf_file}")
                 st.caption(f"{size / (1024 * 1024):.2f} MB")
 
-            with col3:
+            with col2:
                 # Management Menu
                 with st.popover("⋮", use_container_width=True):
                     st.write("관리")
@@ -128,7 +115,7 @@ def render_artifacts_ui():
                         use_container_width=True,
                     )
 
-        st.info(f"선택된 파일: {len(st.session_state.selected_pdfs)}개")
+        st.info(f"총 파일: {len(pdf_files)}개")
 
     # PDF 업로드 섹션
     st.markdown("### PDF 추가")
@@ -147,7 +134,12 @@ def render_artifacts_ui():
             else:
                 with open(file_path, "wb") as f:
                     f.write(uploaded_file.read())
-                st.success(f"✅ '{uploaded_file.name}' 저장되었습니다!")
+
+                # Update Vector Store
+                with st.spinner("임베딩 처리 중..."):
+                    add_pdfs_to_vector_store([file_path])
+
+                st.success(f"✅ '{uploaded_file.name}' 저장 및 색인 완료!")
                 st.rerun()
 
 

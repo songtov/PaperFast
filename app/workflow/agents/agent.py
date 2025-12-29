@@ -6,10 +6,9 @@ import streamlit as st
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from langfuse.langchain import CallbackHandler
 from langgraph.graph import END, StateGraph
-from pypdf import PdfReader
 from retrieval.vector_store import search_pdfs
 from utils.config import get_llm
-from workflow.state import AgentType, RootState
+from workflow.state import RootState
 
 
 # 에이전트 내부 상태 타입 정의
@@ -23,7 +22,7 @@ class AgentState(TypedDict):
 # 에이전트 추상 클래스 정의
 class Agent(ABC):
     def __init__(
-        self, system_prompt: str, role: str, session_id: str = None, k: int = 0
+        self, system_prompt: str, role: str, session_id: str = None, k: int = 5
     ):
         self.system_prompt = system_prompt
         self.role = role
@@ -54,18 +53,6 @@ class Agent(ABC):
 
     # 자료 검색
     def _retrieve_context(self, state: AgentState) -> AgentState:
-        # Check if any PDFs are selected in session state
-        try:
-            selected_pdfs = st.session_state.get("selected_pdfs", [])
-        except Exception:
-            # Fallback if st.session_state is not accessible (e.g. testing)
-            selected_pdfs = []
-
-        if not selected_pdfs:
-            with open("debug_log.txt", "a") as f:
-                f.write("Selected PDFs list is empty.\n")
-            return {**state, "context": ""}
-
         root_state = state["root_state"]
 
         # Extract query from last user message
@@ -80,51 +67,15 @@ class Agent(ABC):
                 f.write("Query is empty.\n")
             return {**state, "context": ""}
 
-        # Construct full paths for selected PDFs
-        data_dir = "data/papers"
-        pdf_paths = [
-            os.path.join(data_dir, pdf)
-            for pdf in selected_pdfs
-            if os.path.isdir("data/papers")
-        ]
+        # RAG Search on persistent Vector Store
+        # We search across all indexed documents.
+        docs = search_pdfs(query, k=self.k)
 
-        if not pdf_paths:
-            return {**state, "context": ""}
-
-        # Check for summarization intent
-        summary_keywords = ["summarize", "summary", "entire", "full", "요약"]
-        is_summary_request = any(
-            keyword in query.lower() for keyword in summary_keywords
-        )
+        # 컨텍스트 포맷팅
+        context = self._format_context(docs)
 
         with open("debug_log.txt", "a") as f:
-            f.write(f"DEBUG: Selected PDFs: {selected_pdfs}\n")
             f.write(f"DEBUG: Query: {query}\n")
-            f.write(f"DEBUG: Is Summary Request: {is_summary_request}\n")
-
-        if is_summary_request:
-            # Load full text from all selected PDFs
-            context = ""
-            for i, pdf_path in enumerate(pdf_paths):
-                try:
-                    reader = PdfReader(pdf_path)
-                    text = ""
-                    for page in reader.pages:
-                        text += page.extract_text() + "\n"
-                    context += f"[문서 {i + 1}] 파일명: {os.path.basename(pdf_path)}\n{text}\n\n"
-                except Exception as e:
-                    print(f"Error reading PDF {pdf_path}: {e}")
-
-            # If context is too large, we might need to truncate, but for now we pass it all
-            # Assuming the model can handle it or we relying on large context window
-        else:
-            # RAG Search on PDFs
-            docs = search_pdfs(query, pdf_paths, k=self.k)
-
-            # 컨텍스트 포맷팅
-            context = self._format_context(docs)
-
-        with open("debug_log.txt", "a") as f:
             f.write(f"DEBUG: Final Context Length: {len(context)}\n")
             f.write(f"DEBUG: Context Content (First 200 chars): {context[:200]}\n")
 
@@ -137,7 +88,7 @@ class Agent(ABC):
         for i, doc in enumerate(docs):
             source = doc.metadata.get("source", "Unknown")
             section = doc.metadata.get("section", "")
-            context += f"[문서 {i + 1}] 출처: {source}"
+            context += f"[문서 {i + 1}] 출처: {os.path.basename(source)}"
             if section:
                 context += f", 섹션: {section}"
             context += f"\n{doc.page_content}\n\n"
@@ -155,6 +106,8 @@ class Agent(ABC):
         for message in root_state["messages"]:
             if message["role"] == "assistant":
                 messages.append(AIMessage(content=message["content"]))
+            elif message["role"] == "user":
+                messages.append(HumanMessage(content=message["content"]))
             else:
                 messages.append(
                     HumanMessage(content=f"{message['role']}: {message['content']}")
@@ -205,11 +158,19 @@ class Agent(ABC):
         agent_state = AgentState(root_state=state, context="", messages=[], response="")
 
         # 내부 그래프 실행
-        langfuse_handler = CallbackHandler()
-        result = self.graph.invoke(
-            agent_state,
-            config={"callbacks": [langfuse_handler], "session_id": self.session_id},
-        )
+        try:
+            langfuse_handler = CallbackHandler()
+            result = self.graph.invoke(
+                agent_state,
+                config={"callbacks": [langfuse_handler], "session_id": self.session_id},
+            )
+        except Exception as e:
+            # Fallback if Langfuse fails or is not configured
+            print(f"Warning: Langfuse callback failed or disabled: {e}")
+            result = self.graph.invoke(
+                agent_state,
+                config={"session_id": self.session_id},
+            )
 
         # 최종 상태 반환
         return result["root_state"]
