@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional
 
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.vectorstores import FAISS
+from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from utils.config import get_embeddings
 
@@ -151,3 +152,12 @@ def search_pdfs(query: str, k: int = 5) -> List[Dict[str, Any]]:
     except Exception as e:
         print(f"Search error: {str(e)}")
         return []
+
+
+def get_all_documents() -> List[Document]:
+    """Retrieve all documents from the vector store."""
+    vector_store = get_vector_store()
+    if not vector_store:
+        return []
+
+    return list(vector_store.docstore._dict.values())

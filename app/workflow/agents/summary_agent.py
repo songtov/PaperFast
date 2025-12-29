@@ -3,7 +3,8 @@ from typing import Any, Dict
 import os
 from workflow.agents.agent import Agent
 from workflow.state import AgentType
-from retrieval.vector_store import search_pdfs
+from retrieval.vector_store import search_pdfs, get_all_documents
+
 
 class SummaryAgent(Agent):
     def __init__(self, session_id: str):
@@ -12,8 +13,9 @@ class SummaryAgent(Agent):
             role=AgentType.SUMMARY,
             session_id=session_id,
         )
-    
+
         # 자료 검색
+
     def _retrieve_context(self, state: Dict[str, Any]) -> Dict[str, Any]:
         root_state = state["root_state"]
 
@@ -27,7 +29,8 @@ class SummaryAgent(Agent):
         # RAG Search on persistent Vector Store
         # We search across all indexed documents.
         print(query)
-        docs = search_pdfs(query, k=self.k)
+        # docs = search_pdfs(query, k=self.k)
+        docs = get_all_documents()
 
         # 컨텍스트 포맷팅
         context = self._format_context(docs)
@@ -40,10 +43,10 @@ class SummaryAgent(Agent):
         context = ""
         for i, doc in enumerate(docs):
             source = doc.metadata.get("source", "Unknown")
-            section = doc.metadata.get("section", "")
-            context += f"[문서 {i + 1}] 출처: {os.path.basename(source)}"
-            if section:
-                context += f", 섹션: {section}"
+            page = doc.metadata.get("page", "")
+            context += f"Original PDF name: {os.path.basename(source)}"
+            if page:
+                context += f", page: {page}"
             context += f"\n{doc.page_content}\n\n"
         return context
 

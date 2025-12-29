@@ -54,39 +54,6 @@ class Agent(ABC):
         # Nothing
         return {**state}
 
-    # # 자료 검색
-    # def _retrieve_context(self, state: AgentState) -> AgentState:
-    #     root_state = state["root_state"]
-
-    #     # Extract query from last user message
-    #     messages = root_state["messages"]
-    #     last_human_msg = next(
-    #         (m for m in reversed(messages) if m["role"] == "user"), None
-    #     )
-    #     query = last_human_msg["content"] if last_human_msg else ""
-
-    #     # RAG Search on persistent Vector Store
-    #     # We search across all indexed documents.
-    #     docs = search_pdfs(query, k=self.k)
-
-    #     # 컨텍스트 포맷팅
-    #     context = self._format_context(docs)
-
-    #     # 상태 업데이트
-    #     return {**state, "context": context}
-
-    # # 검색 결과로 Context 생성
-    # def _format_context(self, docs: list) -> str:
-    #     context = ""
-    #     for i, doc in enumerate(docs):
-    #         source = doc.metadata.get("source", "Unknown")
-    #         section = doc.metadata.get("section", "")
-    #         context += f"[문서 {i + 1}] 출처: {os.path.basename(source)}"
-    #         if section:
-    #             context += f", 섹션: {section}"
-    #         context += f"\n{doc.page_content}\n\n"
-    #     return context
-
     # 프롬프트 메시지 준비
     def _prepare_messages(self, state: AgentState) -> AgentState:
         root_state = state["root_state"]
