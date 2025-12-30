@@ -50,6 +50,18 @@ def new_conversation():
     st.rerun()
 
 
+def rename_conversation(conv_id: int, new_name: str):
+    """대화 이름 변경"""
+    try:
+        if message_repository.rename(conv_id, new_name):
+            st.toast("이름이 변경되었습니다.", icon="✅")
+            st.rerun()
+        else:
+            st.toast("대화를 찾을 수 없습니다.", icon="❌")
+    except Exception as e:
+        st.toast(f"이름 변경 오류: {str(e)}", icon="❌")
+
+
 def render_history_ui():
     st.markdown("### 대화 이력")
 
@@ -70,7 +82,7 @@ def render_history_ui():
             st.write(f"총 {len(conversations)}개의 대화")
 
             # 각 대화 표시
-            for conv_id, date in conversations:
+            for conv_id, name, date in conversations:
                 col1, col2 = st.columns([0.75, 0.25])
 
                 with col1:
@@ -78,22 +90,47 @@ def render_history_ui():
                     current = st.session_state.get("current_conversation_id") == conv_id
                     prefix = "📍 " if current else "💬 "
 
+                    # 대화 버튼 (이름 표시)
                     if st.button(
-                        f"{prefix}{date}",
+                        f"{prefix}{name}",
                         key=f"load_{conv_id}",
                         use_container_width=True,
                         type="primary" if current else "secondary",
+                        help=f"생성: {date}",  # 날짜는 툴팁에 표시
                     ):
                         load_conversation(conv_id)
 
                 with col2:
-                    if st.button(
-                        "🗑️",
-                        key=f"delete_{conv_id}",
-                        use_container_width=True,
-                        help="삭제",
-                    ):
-                        delete_conversation(conv_id)
+                    # 관리 메뉴 (수정/삭제)
+                    with st.popover("⋮", use_container_width=True):
+                        st.write("관리")
+
+                        # 이름 변경
+                        rename_key = f"rename_input_{conv_id}"
+                        new_name = st.text_input(
+                            "새 이름",
+                            value=name,
+                            key=rename_key,
+                            max_chars=50,
+                        )
+                        if st.button(
+                            "이름 변경",
+                            key=f"btn_rename_{conv_id}",
+                            use_container_width=True,
+                        ):
+                            if new_name and new_name != name:
+                                rename_conversation(conv_id, new_name)
+
+                        st.divider()
+
+                        # 삭제
+                        if st.button(
+                            "🗑️ 삭제",
+                            key=f"btn_delete_{conv_id}",
+                            type="primary",
+                            use_container_width=True,
+                        ):
+                            delete_conversation(conv_id)
 
             # 전체 삭제 버튼
             st.divider()

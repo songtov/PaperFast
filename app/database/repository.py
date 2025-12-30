@@ -22,6 +22,15 @@ class MessageRepository:
             cls._instance = super(MessageRepository, cls).__new__(cls)
         return cls._instance
 
+    def _generate_default_name(self, messages: List[Dict]) -> str:
+        """첫 번째 사용자 메시지에서 대화 이름 생성"""
+        for msg in messages:
+            if msg.get("role") == "user":
+                content = msg.get("content", "")
+                # 최대 30자로 제한
+                return content[:30] + "..." if len(content) > 30 else content
+        return "새 대화"
+
     def save(self, messages: List[Dict], message_id: Optional[int] = None) -> int:
         """
         메시지를 저장하거나 업데이트합니다.
@@ -44,13 +53,18 @@ class MessageRepository:
                     if message:
                         message.messages = messages_json
                         message.date = now
+                        # 이름이 없으면 생성 (기존 대화 마이그레이션 지원)
+                        if not message.name:
+                            message.name = self._generate_default_name(messages)
                         return message_id
                     else:
                         # ID가 있지만 찾을 수 없으면 새로 생성
                         logger.warning(f"ID {message_id}를 찾을 수 없어 새 대화를 생성합니다.")
 
                 # 새 대화 생성
+                default_name = self._generate_default_name(messages)
                 message = Message(
+                    name=default_name,
                     date=now,
                     messages=messages_json,
                 )
@@ -61,18 +75,46 @@ class MessageRepository:
             logger.error(f"메시지 저장 중 오류 발생: {str(e)}")
             raise RepositoryError(f"메시지 저장 오류: {str(e)}") from e
 
-    def fetch(self) -> List[Tuple[int, str]]:
+    def fetch(self) -> List[Tuple[int, str, str]]:
+        """
+        모든 대화 목록을 조회합니다.
+
+        Returns:
+            (id, name, date) 튜플의 리스트
+        """
         try:
             with db_session.get_db_session() as session:
                 messages = (
-                    session.query(Message.id, Message.date)
+                    session.query(Message.id, Message.name, Message.date)
                     .order_by(Message.date.desc())
                     .all()
                 )
-                return [(d.id, d.date) for d in messages]
+                return [(d.id, d.name or d.date, d.date) for d in messages]
         except Exception as e:
             logger.error(f"메시지 이력 조회 중 오류 발생: {str(e)}")
             raise RepositoryError(f"메시지 이력 조회 오류: {str(e)}") from e
+
+    def rename(self, message_id: int, new_name: str) -> bool:
+        """
+        대화 이름을 변경합니다.
+
+        Args:
+            message_id: 대화 ID
+            new_name: 새로운 이름
+
+        Returns:
+            성공 여부
+        """
+        try:
+            with db_session.get_db_session() as session:
+                message = session.query(Message).filter(Message.id == message_id).first()
+                if message:
+                    message.name = new_name
+                    return True
+                return False
+        except Exception as e:
+            logger.error(f"대화 이름 변경 중 오류 발생: {str(e)}")
+            raise RepositoryError(f"대화 이름 변경 오류: {str(e)}") from e
 
     def fetch_by_id(self, message_id: int) -> Optional[List[Dict]]:
         try:
