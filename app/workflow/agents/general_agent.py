@@ -68,8 +68,6 @@ class GeneralAgent(Agent):
         # Invoke the agent
         agent_response = await agent.ainvoke({"messages": messages})
 
-        print(agent_response)
-
         # Extract the last message content
         response_content = agent_response["messages"][-1].content
 

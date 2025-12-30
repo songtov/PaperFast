@@ -50,5 +50,4 @@ class RagAgent(Agent):
 
     def _create_prompt(self, state: Dict[str, Any]) -> str:
         context = state.get("context", "")
-        print(state)
         return f"Answer in Korean if latest user query is in Korean. Please give detailed information the following content explicitly and comprehensively:\n\n{context}"

@@ -2,6 +2,8 @@ import uuid
 
 import streamlit as st
 from components.sidebar import render_sidebar
+from database.repository import message_repository
+from database.session import db_session
 from langfuse.langchain import CallbackHandler
 from utils.state_manager import init_session_state
 from workflow.graph import create_workflow
@@ -32,7 +34,8 @@ def invoke_workflow():
             },
         )
 
-    st.info(result)
+    # For debugging
+    # st.info(result)
 
     return result["messages"][-1]["content"]
 
@@ -77,8 +80,26 @@ def render_ui():
             {"role": "assistant", "content": full_response}
         )
 
+        # Save or update messages to database
+        try:
+            # Pass current_conversation_id to update existing conversation
+            # Returns the conversation ID (new or existing)
+            conversation_id = message_repository.save(
+                messages=st.session_state.messages,
+                message_id=st.session_state.current_conversation_id,
+            )
+            # Update session state with the conversation ID
+            st.session_state.current_conversation_id = conversation_id
+
+            # Rerun to refresh sidebar with updated conversation list
+            st.rerun()
+        except Exception as e:
+            st.error(f"메시지 저장 중 오류 발생: {str(e)}")
+
 
 if __name__ == "__main__":
     init_session_state()
+
+    db_session.initialize()
 
     render_ui()
