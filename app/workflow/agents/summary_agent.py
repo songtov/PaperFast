@@ -28,8 +28,6 @@ class SummaryAgent(Agent):
 
         # RAG Search on persistent Vector Store
         # We search across all indexed documents.
-        print(query)
-        # docs = search_pdfs(query, k=self.k)
         docs = get_all_documents()
 
         # 컨텍스트 포맷팅

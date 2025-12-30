@@ -67,7 +67,6 @@ def add_pdfs_to_vector_store(pdf_paths: List[str]):
 
     try:
         vector_store.save_local(VECTOR_STORE_PATH, index_name=INDEX_NAME)
-        print(f"Vector store saved to {VECTOR_STORE_PATH}")
     except Exception as e:
         print(f"Error saving vector store: {e}")
 

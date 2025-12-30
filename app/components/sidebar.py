@@ -2,6 +2,7 @@ import os
 from typing import Any, Dict
 
 import streamlit as st
+from database.repository import message_repository
 from retrieval.vector_store import (
     add_pdfs_to_vector_store,
     delete_document_from_vector_store,
@@ -12,8 +13,102 @@ DATA_DIR = "app/storage/raw"
 os.makedirs(DATA_DIR, exist_ok=True)
 
 
+def load_conversation(message_id: int):
+    """대화 불러오기"""
+    try:
+        messages = message_repository.fetch_by_id(message_id)
+        if messages:
+            st.session_state.messages = messages
+            st.session_state.current_conversation_id = message_id
+            st.rerun()
+        else:
+            st.toast("대화를 찾을 수 없습니다.", icon="⚠️")
+    except Exception as e:
+        st.toast(f"대화 불러오기 오류: {str(e)}", icon="❌")
+
+
+def delete_conversation(message_id: int):
+    """대화 삭제"""
+    try:
+        if message_repository.delete_by_id(message_id):
+            # 현재 보고 있는 대화를 삭제한 경우 초기화
+            if st.session_state.get("current_conversation_id") == message_id:
+                st.session_state.messages = []
+                st.session_state.current_conversation_id = None
+            st.toast("대화가 삭제되었습니다.", icon="✅")
+            st.rerun()
+        else:
+            st.toast("대화 삭제 실패", icon="❌")
+    except Exception as e:
+        st.toast(f"대화 삭제 오류: {str(e)}", icon="❌")
+
+
+def new_conversation():
+    """새 대화 시작"""
+    st.session_state.messages = []
+    st.session_state.current_conversation_id = None
+    st.rerun()
+
+
 def render_history_ui():
-    pass
+    st.markdown("### 대화 이력")
+
+    # 새 대화 버튼
+    if st.button("➕ 새 대화", use_container_width=True):
+        new_conversation()
+
+    st.divider()
+
+    # 대화 목록 가져오기 (항상 최신 데이터 가져오기)
+    try:
+        # Force refresh by fetching from database every time
+        conversations = message_repository.fetch()
+
+        if not conversations:
+            st.info("📝 저장된 대화가 없습니다.")
+        else:
+            st.write(f"총 {len(conversations)}개의 대화")
+
+            # 각 대화 표시
+            for conv_id, date in conversations:
+                col1, col2 = st.columns([0.75, 0.25])
+
+                with col1:
+                    # 현재 대화 표시
+                    current = st.session_state.get("current_conversation_id") == conv_id
+                    prefix = "📍 " if current else "💬 "
+
+                    if st.button(
+                        f"{prefix}{date}",
+                        key=f"load_{conv_id}",
+                        use_container_width=True,
+                        type="primary" if current else "secondary",
+                    ):
+                        load_conversation(conv_id)
+
+                with col2:
+                    if st.button(
+                        "🗑️",
+                        key=f"delete_{conv_id}",
+                        use_container_width=True,
+                        help="삭제",
+                    ):
+                        delete_conversation(conv_id)
+
+            # 전체 삭제 버튼
+            st.divider()
+            if st.button("🗑️ 전체 삭제", type="primary", use_container_width=True):
+                try:
+                    count = message_repository.delete_all()
+                    st.session_state.messages = []
+                    st.session_state.current_conversation_id = None
+                    st.toast(f"{count}개의 대화가 삭제되었습니다.", icon="✅")
+                    st.rerun()
+                except Exception as e:
+                    st.toast(f"전체 삭제 오류: {str(e)}", icon="❌")
+
+    except Exception as e:
+        st.error(f"대화 목록 조회 오류: {str(e)}")
 
 
 def rename_file(old_path: str, new_name_key: str):
