@@ -90,6 +90,9 @@ def render_ui():
             )
             # Update session state with the conversation ID
             st.session_state.current_conversation_id = conversation_id
+
+            # Rerun to refresh sidebar with updated conversation list
+            st.rerun()
         except Exception as e:
             st.error(f"메시지 저장 중 오류 발생: {str(e)}")
 
