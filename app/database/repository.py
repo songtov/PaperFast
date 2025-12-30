@@ -1,7 +1,7 @@
 import datetime
 import json
 import logging
-from typing import List, Optional, Tuple, Dict
+from typing import Dict, List, Optional, Tuple
 
 from database.model import Message
 from database.session import db_session
@@ -49,7 +49,9 @@ class MessageRepository:
 
                 if message_id:
                     # 기존 대화 업데이트
-                    message = session.query(Message).filter(Message.id == message_id).first()
+                    message = (
+                        session.query(Message).filter(Message.id == message_id).first()
+                    )
                     if message:
                         message.messages = messages_json
                         message.date = now
@@ -59,7 +61,9 @@ class MessageRepository:
                         return message_id
                     else:
                         # ID가 있지만 찾을 수 없으면 새로 생성
-                        logger.warning(f"ID {message_id}를 찾을 수 없어 새 대화를 생성합니다.")
+                        logger.warning(
+                            f"ID {message_id}를 찾을 수 없어 새 대화를 생성합니다."
+                        )
 
                 # 새 대화 생성
                 default_name = self._generate_default_name(messages)
@@ -107,7 +111,9 @@ class MessageRepository:
         """
         try:
             with db_session.get_db_session() as session:
-                message = session.query(Message).filter(Message.id == message_id).first()
+                message = (
+                    session.query(Message).filter(Message.id == message_id).first()
+                )
                 if message:
                     message.name = new_name
                     return True
@@ -119,7 +125,9 @@ class MessageRepository:
     def fetch_by_id(self, message_id: int) -> Optional[List[Dict]]:
         try:
             with db_session.get_db_session() as session:
-                message = session.query(Message).filter(Message.id == message_id).first()
+                message = (
+                    session.query(Message).filter(Message.id == message_id).first()
+                )
 
                 if message:
                     messages = json.loads(message.messages)
@@ -135,7 +143,9 @@ class MessageRepository:
     def delete_by_id(self, message_id: int) -> bool:
         try:
             with db_session.get_db_session() as session:
-                result = session.query(Message).filter(Message.id == message_id).delete()
+                result = (
+                    session.query(Message).filter(Message.id == message_id).delete()
+                )
                 return result > 0
         except Exception as e:
             logger.error(f"메시지 삭제 중 오류 발생: {str(e)}")

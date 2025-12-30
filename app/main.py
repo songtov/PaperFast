@@ -86,7 +86,7 @@ def render_ui():
             # Returns the conversation ID (new or existing)
             conversation_id = message_repository.save(
                 messages=st.session_state.messages,
-                message_id=st.session_state.current_conversation_id
+                message_id=st.session_state.current_conversation_id,
             )
             # Update session state with the conversation ID
             st.session_state.current_conversation_id = conversation_id
@@ -95,7 +95,6 @@ def render_ui():
             st.rerun()
         except Exception as e:
             st.error(f"메시지 저장 중 오류 발생: {str(e)}")
-
 
 
 if __name__ == "__main__":

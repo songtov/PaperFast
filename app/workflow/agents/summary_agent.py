@@ -17,15 +17,6 @@ class SummaryAgent(Agent):
         # 자료 검색
 
     def _retrieve_context(self, state: Dict[str, Any]) -> Dict[str, Any]:
-        root_state = state["root_state"]
-
-        # Extract query from last user message
-        messages = root_state["messages"]
-        last_human_msg = next(
-            (m for m in reversed(messages) if m["role"] == "user"), None
-        )
-        query = last_human_msg["content"] if last_human_msg else ""
-
         # RAG Search on persistent Vector Store
         # We search across all indexed documents.
         docs = get_all_documents()
