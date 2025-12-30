@@ -7,10 +7,74 @@ from database.session import db_session
 from langfuse.langchain import CallbackHandler
 from utils.state_manager import init_session_state
 from workflow.graph import create_workflow
-from workflow.state import RootState
+from workflow.state import AgentType, RootState
+
+
+def process_message_chunk(chunk, current_status):
+    """Process streaming chunks from workflow execution
+
+    Args:
+        chunk: The chunk from workflow.stream()
+        current_status: Dict to track current agent status context
+
+    Returns:
+        tuple: (agent_name, response_text) if response found, else (agent_name, None)
+    """
+    if not chunk or len(chunk) < 2:
+        return None, None
+
+    node_tuple = chunk[0]
+    node_data = chunk[1]
+
+    # Map agent types to display names and emojis
+    agent_display = {
+        AgentType.MASTER: ("🧠 Master Agent", "라우팅 중..."),
+        AgentType.GENERAL: ("💬 General Agent", "답변 생성 중..."),
+        AgentType.SEARCH: ("🔍 Search Agent", "논문 검색 중..."),
+        AgentType.SUMMARY: ("📝 Summary Agent", "논문 요약 중..."),
+        AgentType.RAG: ("📚 RAG Agent", "데이터베이스 검색 중..."),
+    }
+
+    # Handle subgraph chunks: (('AGENT_NAME:id',), {'step_name': {...}})
+    if node_tuple and len(node_tuple) > 0 and isinstance(node_tuple[0], str):
+        # Extract agent name from 'AGENT_NAME:id' format
+        agent_full_name = node_tuple[0].split(":")[0]
+
+        # Update current agent
+        if agent_full_name in agent_display:
+            current_status["agent"] = agent_full_name
+            current_status["emoji_name"], current_status["status_text"] = agent_display[
+                agent_full_name
+            ]
+
+        # Check if this chunk contains a response in 'update_state' step
+        if isinstance(node_data, dict):
+            for step_name, step_data in node_data.items():
+                if step_name == "update_state" and isinstance(step_data, dict):
+                    response = step_data.get("response")
+                    if response and isinstance(response, str):
+                        return agent_full_name, response
+
+    # Handle final chunks: ((), {'AGENT_NAME': {...}})
+    elif not node_tuple or node_tuple == ():
+        if isinstance(node_data, dict):
+            for agent_name, agent_state in node_data.items():
+                if isinstance(agent_state, dict) and "messages" in agent_state:
+                    messages = agent_state["messages"]
+                    if messages and isinstance(messages, list) and len(messages) > 0:
+                        last_msg = messages[-1]
+                        if isinstance(last_msg, dict) and "content" in last_msg:
+                            return agent_name, last_msg["content"]
+
+    return current_status.get("agent"), None
 
 
 def invoke_workflow():
+    """Execute the workflow and stream results with status display
+
+    Returns:
+        The final response text
+    """
     session_id = str(uuid.uuid4())
 
     workflow = create_workflow(session_id=session_id)
@@ -24,20 +88,51 @@ def invoke_workflow():
         "rag_enabled": rag_enabled,
     }
 
-    with st.spinner("로딩 중..."):
-        langfuse_handler = CallbackHandler()
-        result = workflow.invoke(
-            initial_state,
-            config={
-                "callbacks": [langfuse_handler],
-                "metadata": {"session_id": session_id},
-            },
-        )
+    langfuse_handler = CallbackHandler()
+    final_response = None
+    current_status = {}
+    status_obj = None
 
-    # For debugging
-    # st.info(result)
+    for chunk in workflow.stream(
+        initial_state,
+        config={
+            "callbacks": [langfuse_handler],
+            "metadata": {"session_id": session_id},
+        },
+        subgraphs=True,
+        stream_mode="updates",
+    ):
+        # Process each chunk
+        agent_name, response = process_message_chunk(chunk, current_status)
 
-    return result["messages"][-1]["content"]
+        # Update status display
+        if current_status.get("agent") and current_status.get("emoji_name"):
+            emoji_name = current_status["emoji_name"]
+            status_text = current_status["status_text"]
+
+            # Create or update status
+            if status_obj:
+                status_obj.update(label=f"{emoji_name} - {status_text}", state="running")
+            else:
+                status_obj = st.status(
+                    f"{emoji_name} - {status_text}", state="running", expanded=True
+                )
+
+            # If we have a response, show it inside the status
+            if response:
+                with status_obj:
+                    st.markdown(response)
+                final_response = response
+
+    # Mark final status as complete
+    if status_obj and final_response:
+        status_obj.update(state="complete", expanded=False)
+
+    # Return the final response
+    if final_response:
+        return final_response
+
+    return "응답을 생성하지 못했습니다."
 
 
 def render_ui():
@@ -71,9 +166,8 @@ def render_ui():
 
         # Display assistant response in chat message container
         with st.chat_message("assistant"):
-            message_placeholder = st.empty()
+            # Invoke workflow with streaming status
             full_response = invoke_workflow()
-            message_placeholder.markdown(full_response)
 
         # Add assistant response to chat history
         st.session_state.messages.append(
