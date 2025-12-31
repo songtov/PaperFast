@@ -104,8 +104,7 @@ PaperFast/
 │   └── utils/
 │       ├── config.py               # Environment configuration
 │       └── state_manager.py        # Streamlit state management
-├── pyproject.toml                   # Project dependencies and configuration
-└── .env                            # Environment variables (not in git!)
+└── pyproject.toml                   # Project dependencies and configuration
 ```
 
 ## 🏗️ Architecture
