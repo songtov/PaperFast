@@ -134,7 +134,7 @@ def invoke_workflow():
                 )
             else:
                 status_obj = st.status(
-                    f"{emoji_name} - {status_text}", state="running", expanded=True
+                    f"{emoji_name} - {status_text}", state="running", expanded=False
                 )
                 # Create placeholder inside status for subgraph steps
                 with status_obj:
