@@ -70,7 +70,7 @@ def process_message_chunk(chunk, current_status):
 
 
 def invoke_workflow():
-    """Execute the workflow and stream results with status display
+    """Execute the workflow and display agent status
 
     Returns:
         The final response text
@@ -112,21 +112,21 @@ def invoke_workflow():
 
             # Create or update status
             if status_obj:
-                status_obj.update(label=f"{emoji_name} - {status_text}", state="running")
+                status_obj.update(
+                    label=f"{emoji_name} - {status_text}", state="running"
+                )
             else:
                 status_obj = st.status(
-                    f"{emoji_name} - {status_text}", state="running", expanded=True
+                    f"{emoji_name} - {status_text}", state="running", expanded=False
                 )
 
-            # If we have a response, show it inside the status
-            if response:
-                with status_obj:
-                    st.markdown(response)
-                final_response = response
+        # Track final response
+        if response:
+            final_response = response
 
     # Mark final status as complete
-    if status_obj and final_response:
-        status_obj.update(state="complete", expanded=False)
+    if status_obj:
+        status_obj.update(state="complete")
 
     # Return the final response
     if final_response:
@@ -166,8 +166,10 @@ def render_ui():
 
         # Display assistant response in chat message container
         with st.chat_message("assistant"):
-            # Invoke workflow with streaming status
+            # Invoke workflow with agent status display
             full_response = invoke_workflow()
+            # Display final response
+            st.markdown(full_response)
 
         # Add assistant response to chat history
         st.session_state.messages.append(
