@@ -18,10 +18,10 @@ def process_message_chunk(chunk, current_status):
         current_status: Dict to track current agent status context
 
     Returns:
-        tuple: (agent_name, response_text) if response found, else (agent_name, None)
+        tuple: (agent_name, subgraph_step, response_text)
     """
     if not chunk or len(chunk) < 2:
-        return None, None
+        return None, None, None
 
     node_tuple = chunk[0]
     node_data = chunk[1]
@@ -33,6 +33,14 @@ def process_message_chunk(chunk, current_status):
         AgentType.SEARCH: ("🔍 Search Agent", "논문 검색 중..."),
         AgentType.SUMMARY: ("📝 Summary Agent", "논문 요약 중..."),
         AgentType.RAG: ("📚 RAG Agent", "데이터베이스 검색 중..."),
+    }
+
+    # Map subgraph step names to Korean
+    step_display = {
+        "retrieve_context": "📥 컨텍스트 검색",
+        "prepare_messages": "📝 메시지 준비",
+        "generate_response": "🤖 응답 생성",
+        "update_state": "✅ 상태 업데이트",
     }
 
     # Handle subgraph chunks: (('AGENT_NAME:id',), {'step_name': {...}})
@@ -47,13 +55,21 @@ def process_message_chunk(chunk, current_status):
                 agent_full_name
             ]
 
-        # Check if this chunk contains a response in 'update_state' step
+        # Extract subgraph step information
+        subgraph_step = None
         if isinstance(node_data, dict):
             for step_name, step_data in node_data.items():
+                # Track the current step
+                if step_name in step_display:
+                    subgraph_step = step_display[step_name]
+
+                # Check if this chunk contains a response in 'update_state' step
                 if step_name == "update_state" and isinstance(step_data, dict):
                     response = step_data.get("response")
                     if response and isinstance(response, str):
-                        return agent_full_name, response
+                        return agent_full_name, subgraph_step, response
+
+        return agent_full_name, subgraph_step, None
 
     # Handle final chunks: ((), {'AGENT_NAME': {...}})
     elif not node_tuple or node_tuple == ():
@@ -64,13 +80,13 @@ def process_message_chunk(chunk, current_status):
                     if messages and isinstance(messages, list) and len(messages) > 0:
                         last_msg = messages[-1]
                         if isinstance(last_msg, dict) and "content" in last_msg:
-                            return agent_name, last_msg["content"]
+                            return agent_name, None, last_msg["content"]
 
-    return current_status.get("agent"), None
+    return current_status.get("agent"), None, None
 
 
 def invoke_workflow():
-    """Execute the workflow and display agent status
+    """Execute the workflow and display agent status with subgraph steps
 
     Returns:
         The final response text
@@ -92,6 +108,7 @@ def invoke_workflow():
     final_response = None
     current_status = {}
     status_obj = None
+    step_placeholder = None
 
     for chunk in workflow.stream(
         initial_state,
@@ -103,7 +120,7 @@ def invoke_workflow():
         stream_mode="updates",
     ):
         # Process each chunk
-        agent_name, response = process_message_chunk(chunk, current_status)
+        agent_name, subgraph_step, response = process_message_chunk(chunk, current_status)
 
         # Update status display
         if current_status.get("agent") and current_status.get("emoji_name"):
@@ -117,8 +134,16 @@ def invoke_workflow():
                 )
             else:
                 status_obj = st.status(
-                    f"{emoji_name} - {status_text}", state="running", expanded=False
+                    f"{emoji_name} - {status_text}", state="running", expanded=True
                 )
+                # Create placeholder inside status for subgraph steps
+                with status_obj:
+                    step_placeholder = st.empty()
+
+        # Display subgraph step inside the status
+        if subgraph_step and step_placeholder:
+            with step_placeholder:
+                st.write(subgraph_step)
 
         # Track final response
         if response:
@@ -126,7 +151,7 @@ def invoke_workflow():
 
     # Mark final status as complete
     if status_obj:
-        status_obj.update(state="complete")
+        status_obj.update(state="complete", expanded=False)
 
     # Return the final response
     if final_response:
