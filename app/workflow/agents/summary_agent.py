@@ -40,5 +40,6 @@ class SummaryAgent(Agent):
         return context
 
     def _create_prompt(self, state: Dict[str, Any]) -> str:
+        user_query = self._get_latest_user_query(state)
         context = state.get("context", "")
-        return f"Please summarize the following content explicitly and comprehensively:\n\n{context}"
+        return f"User query: {user_query}\n\nIf user query is in Korean, answer in Korean.\n\nPlease summarize the following content explicitly and comprehensively:\n\n{context}"

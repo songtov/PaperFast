@@ -20,8 +20,11 @@ class GeneralAgent(Agent):
         )
 
     def _create_prompt(self, state: Dict[str, Any]) -> str:
+        user_query = self._get_latest_user_query(state)
         context = state.get("context", "")
-        prompt = "Answer the user query using the available tools if necessary."
+
+        prompt = f"User query: {user_query}\n\nIf user query is in Korean, answer in Korean.\n\n"
+        prompt += "Answer the user query using the available tools if necessary."
         if context:
             prompt += f"\n\nHere is the full text or context from the selected documents. Use this to answer the user's question, especially if they ask for a summary:\n{context}"
         return prompt

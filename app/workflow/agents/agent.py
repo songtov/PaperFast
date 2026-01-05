@@ -78,6 +78,16 @@ class Agent(ABC):
         # 상태 업데이트
         return {**state, "messages": messages}
 
+    # 최신 사용자 쿼리 추출 헬퍼 메서드
+    def _get_latest_user_query(self, state: Dict[str, Any]) -> str:
+        """Extract the latest user query from state messages."""
+        messages = state.get("messages", [])
+        # Find the last message with role "user"
+        for message in reversed(messages):
+            if message.get("role") == "user":
+                return message.get("content", "")
+        return ""
+
     # 프롬프트 생성 - 하위 클래스에서 구현 필요
     @abstractmethod
     def _create_prompt(self, state: Dict[str, Any]) -> str:
