@@ -19,7 +19,8 @@ class SearchAgent(Agent):
         )
 
     def _create_prompt(self, state: Dict[str, Any]) -> str:
-        return "Search for useful research paper based on user query"
+        user_query = self._get_latest_user_query(state)
+        return f"User query: {user_query}\n\nIf user query is in Korean, answer in Korean.\n\nSearch for useful research paper based on user query"
 
     async def _generate_response(self, state: AgentState) -> AgentState:
         # Define storage path for papers (using a temp dir or project dir)
